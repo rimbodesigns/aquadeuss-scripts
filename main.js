@@ -1,11 +1,15 @@
 /*
  * Aquadeuss site scripts (staging-aquadeuss.webflow.io)
  * Migrated from Slater project 17429 on 2026-11-14. Originals in slater/.
+ * v1.1.0: reduced-motion support, logo timer pauses in background tabs, service-card hover on every page.
  * One section per page or feature; the router at the bottom decides what runs where.
  * Needs GSAP + ScrollTrigger, SplitText, CustomEase, Draggable, InertiaPlugin (Webflow GSAP integration),
  * registered by the inline gsap.registerPlugin(...) in the Webflow footer before this file.
  */
 (() => {
+
+// Visitors who ask their device for less motion get no endless spins and no parallax.
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------------------------------------------------------------------------
 // Shared helper: GSAP seamless loop (was duplicated in GLOBAL.js and HOME.js,
@@ -239,7 +243,7 @@ function horizontalLoop(items, config) {
 function adGlobal() {
     //360
 
-  document.querySelectorAll("[rotate360], [rotate360_F]").forEach(el => {
+  if (!reduceMotion) document.querySelectorAll("[rotate360], [rotate360_F]").forEach(el => {
     const duration = parseFloat(el.getAttribute("rotate360")) || 12;
     const forward = !el.hasAttribute("rotate360_F");
     gsap.to(el, {
@@ -254,12 +258,14 @@ function adGlobal() {
   //logo movement
 
   let angle = 0;
-  setInterval(() => {
+  // Only when the logo icon exists (it isn't on the current site, so no timer runs).
+  if (!reduceMotion && document.querySelector("#LOGO_ICON")) setInterval(() => {
+    if (document.hidden) return; // no work while the tab is in the background
     angle += 45;
     gsap.to("#LOGO_ICON", {
       rotation: angle,
       duration: 0.6,
-      ease: "ease",
+      ease: "power1.out", // was "ease", which GSAP doesn't know and replaced with power1.out
       transformOrigin: "center center",
     });
   }, 4400);
@@ -345,7 +351,7 @@ function adGlobal() {
       }
     )
   }
-  initGlobalParallax()
+  if (!reduceMotion) initGlobalParallax()
 
   //FOOTER MENU
   //FOOTER MENU
@@ -380,7 +386,7 @@ function adGlobal() {
       }
     });
   }
-  initFooterParallax();
+  if (!reduceMotion) initFooterParallax();
 
   //NAV MENU
   //NAV MENU
@@ -968,20 +974,10 @@ function adGlobal() {
   }
 
   initBasicFormValidation();
-}
 
-// ---------------------------------------------------------------------------
-// adHome: home page only (Slater 48614 HOME.js)
-// ---------------------------------------------------------------------------
-function adHome() {
-    // gsap.to("#spinning_wave", {
-  //   rotate: 360,
-  //   duration: 10,
-  //   ease: "none",
-  //   repeat: -1
-  // });
-
-  document.querySelectorAll(".option_block").forEach((block) => {
+  // Service option cards (For private clients / For architects): on 4 pages, so global.
+  // Only on devices with a real hover, so a tap on a phone doesn't leave a card scaled up.
+  if (window.matchMedia("(hover: hover)").matches) document.querySelectorAll(".option_block").forEach((block) => {
     const tagDark = block.querySelector(".tag.dark");
 
     block.addEventListener("mouseenter", () => {
@@ -1018,6 +1014,18 @@ function adHome() {
       }
     });
   });
+}
+
+// ---------------------------------------------------------------------------
+// adHome: home page only (Slater 48614 HOME.js)
+// ---------------------------------------------------------------------------
+function adHome() {
+    // gsap.to("#spinning_wave", {
+  //   rotate: 360,
+  //   duration: 10,
+  //   ease: "none",
+  //   repeat: -1
+  // });
 
   //dragable images hero
   //dragable images hero
