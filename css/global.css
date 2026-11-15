@@ -32,6 +32,10 @@
 .nav_menu .header.is-on-dark .logo_img,
 .nav_menu .header.is-on-dark .menu-button { filter: brightness(0) invert(1); }
 
+/* While the menu is open main.js stops Locomotive, which hides the page scrollbar
+   (overflow:hidden). Keep the scrollbar's space so the page doesn't jump sideways on Windows. */
+html { scrollbar-gutter: stable; }
+
 /* FAQ: main.js puts each question's text in a <button> inside its heading, so keyboards can
    open it. The button looks exactly like the heading text did; the focus ring matches the
    site's other focus style. */

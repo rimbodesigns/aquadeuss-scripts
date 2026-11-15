@@ -424,10 +424,23 @@ function adGlobal() {
     const darkBlue = brandColor("--aqua-deuss-bleu--dark-bleu", "#001a54")
     const light = brandColor("--background-colors--dim_turqyase", "#eff8fb")
 
+    // Screen readers: one clear name instead of "MenuClose" (both text layers were read),
+    // whether the menu is open, and which element it opens. Set here so the NavMenu needs no edit.
+    if (menu && !menu.id) menu.id = "site-menu"
+    menuButton.removeAttribute("role") // it is already a <button>
+    menuButton.setAttribute("aria-label", "Open menu")
+    menuButton.setAttribute("aria-expanded", "false")
+    if (menu) menuButton.setAttribute("aria-controls", menu.id)
+    menuButtonTexts.forEach((p) => p.setAttribute("aria-hidden", "true"))
+    navWrap.querySelectorAll(".menu-link .eyebrow").forEach((n) => n.setAttribute("aria-hidden", "true")) // "01" to "07"
+
     let tl = gsap.timeline()
 
     const openNav = () => {
       navWrap.setAttribute("data-nav", "open")
+      menuButton.setAttribute("aria-expanded", "true")
+      menuButton.setAttribute("aria-label", "Close menu")
+      window.locomotiveScroll?.stop() // the page behind the open menu stays put
 
       tl.clear()
         .set(navWrap, { display: "block" })
@@ -448,10 +461,23 @@ function adGlobal() {
           yPercent: 0,
           stagger: 0.04
         }, "<+=0.2")
+        // Keyboard users land on the first link once the menu is in. Skipped if they already
+        // tabbed somewhere else while it animated.
+        .add(() => {
+          const focused = document.activeElement
+          if (menuLinks[0] && (focused === menuButton || focused === document.body || !focused)) {
+            menuLinks[0].focus({ preventScroll: true })
+          }
+        })
     }
 
     const closeNav = () => {
       navWrap.setAttribute("data-nav", "closed")
+      menuButton.setAttribute("aria-expanded", "false")
+      menuButton.setAttribute("aria-label", "Open menu")
+      window.locomotiveScroll?.start()
+      // Focus was inside the menu, which is about to be hidden: give it back to the button
+      if (navWrap.contains(document.activeElement)) menuButton.focus({ preventScroll: true })
 
       tl.clear()
         .to(overlay, { autoAlpha: 0 })
