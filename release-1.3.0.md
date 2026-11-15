@@ -10,13 +10,16 @@ What changes on the site, what to paste where, and how to check it. Background: 
 
 ## 1. Merge and tag (repo)
 
-jsDelivr serves the file from the git tag, so the tag must exist before Webflow points to it.
+jsDelivr serves the file from the git tag, so the tag must exist before Webflow points to it. The work branch is also called `v1.3.0`; delete it after merging, so the name only means the tag (otherwise git calls `v1.3.0` ambiguous, and jsDelivr could pick the branch).
 
 ```sh
 git checkout main
 git merge v1.3.0
+git push origin main
+git branch -d v1.3.0
+git push origin --delete v1.3.0
 git tag v1.3.0
-git push origin main v1.3.0
+git push origin refs/tags/v1.3.0
 ```
 
 Check that `https://cdn.jsdelivr.net/gh/rimbodesigns/aquadeuss-scripts@v1.3.0/main.min.js` opens and starts with the v1.3.0 header comment.
