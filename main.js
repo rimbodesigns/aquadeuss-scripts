@@ -1149,17 +1149,6 @@ function adHome() {
     }
     const allSteps = stepsParent ? stepsParent.querySelectorAll('[data-slide-count="step"]') : [];
 
-    // Responsive
-    const mq = window.matchMedia('(min-width: 992px)');
-    let useNextForActive = mq.matches;
-    mq.addEventListener('change', (e) => {
-      useNextForActive = e.matches;
-      // Re-apply active to the correct element for this breakpoint
-      if (currentEl) {
-        applyActive(currentEl, currentIndex, /*animateNumbers=*/ false);
-      }
-    });
-
     // Keep track of the current element & index from onChange
     let currentEl = null;
     let currentIndex = 0;
@@ -1191,12 +1180,13 @@ function adHome() {
       }
     });
 
-    // Click -> go to index (offset only on desktop offset design)
-    function mapClickIndex(i) { return useNextForActive ? (i - 1) : i; }
+    // Click a slide -> it becomes the active (centred) one, on every screen size. Desktop used
+    // to go to i - 1, left over from an older offset design: clicking the slide right of the
+    // active one did nothing and the one on the left jumped back two.
     slides.forEach((slide, i) => {
       slide.addEventListener("click", () => {
         if (slide.classList.contains("active")) return;
-        loop.toIndex(mapClickIndex(i), { ease: "power3", duration: 0.725 });
+        loop.toIndex(i, { ease: "power3", duration: 0.725 });
       });
     });
 
