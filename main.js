@@ -22,6 +22,16 @@ function safe(name, fn) {
   }
 }
 
+// Site-wide ease and tween defaults. They change every GSAP animation on the site
+// (menu, sliders, footer), so they are set here, before any feature creates a tween.
+safe("eases", () => {
+  CustomEase.create("main", "0.65, 0.01, 0.05, 0.99");
+  gsap.defaults({
+    ease: "main",
+    duration: 0.7
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Shared helper: GSAP seamless loop (was duplicated in GLOBAL.js and HOME.js,
 // the two copies were identical apart from comments and whitespace)
@@ -254,21 +264,7 @@ function horizontalLoop(items, config) {
 function adGlobal() {
   // The Home orbit rings ([rotate360]) spin in CSS since v1.3.0 (css/global.css): the browser
   // runs that off the main thread, and visitors who ask for less motion get still rings.
-
-  //logo movement
-
-  let angle = 0;
-  // Only when the logo icon exists (it isn't on the current site, so no timer runs).
-  if (!reduceMotion && document.querySelector("#LOGO_ICON")) setInterval(() => {
-    if (document.hidden) return; // no work while the tab is in the background
-    angle += 45;
-    gsap.to("#LOGO_ICON", {
-      rotation: angle,
-      duration: 0.6,
-      ease: "power1.out", // was "ease", which GSAP doesn't know and replaced with power1.out
-      transformOrigin: "center center",
-    });
-  }, 4400);
+  // The #LOGO_ICON rotation timer is gone: no page has that element (v1.1.0 already kept it idle).
 
   //PARALAX
   //PARALAX
@@ -278,6 +274,8 @@ function adGlobal() {
   function initGlobalParallax() {
     const mm = gsap.matchMedia()
 
+    // gsap.matchMedia records the tweens made in here and reverts them itself when the
+    // breakpoint changes, so no extra gsap.context is needed.
     mm.add(
       {
         isMobile: "(max-width:479px)",
@@ -288,66 +286,62 @@ function adGlobal() {
       (context) => {
         const { isMobile, isMobileLandscape, isTablet } = context.conditions
 
-        const ctx = gsap.context(() => {
-          document.querySelectorAll('[data-parallax="trigger"]').forEach((trigger) => {
-            // Check if this trigger has to be disabled on smaller breakpoints
-            const disable = trigger.getAttribute("data-parallax-disable")
-            if (
-              (disable === "mobile" && isMobile) ||
-              (disable === "mobileLandscape" && isMobileLandscape) ||
-              (disable === "tablet" && isTablet)
-            ) {
-              return
-            }
+        document.querySelectorAll('[data-parallax="trigger"]').forEach((trigger) => {
+          // Check if this trigger has to be disabled on smaller breakpoints
+          const disable = trigger.getAttribute("data-parallax-disable")
+          if (
+            (disable === "mobile" && isMobile) ||
+            (disable === "mobileLandscape" && isMobileLandscape) ||
+            (disable === "tablet" && isTablet)
+          ) {
+            return
+          }
 
-            // Optional: you can target an element inside a trigger if necessary 
-            const target = trigger.querySelector('[data-parallax="target"]') || trigger
+          // Optional: you can target an element inside a trigger if necessary
+          const target = trigger.querySelector('[data-parallax="target"]') || trigger
 
-            // Get the direction value to decide between xPercent or yPercent tween
-            const direction = trigger.getAttribute("data-parallax-direction") || "vertical"
-            const prop = direction === "horizontal" ? "xPercent" : "yPercent"
+          // Get the direction value to decide between xPercent or yPercent tween
+          const direction = trigger.getAttribute("data-parallax-direction") || "vertical"
+          const prop = direction === "horizontal" ? "xPercent" : "yPercent"
 
-            // Get the scrub value, our default is 'true' because that feels nice with Lenis
-            const scrubAttr = trigger.getAttribute("data-parallax-scrub")
-            const scrub = scrubAttr ? parseFloat(scrubAttr) : true
+          // Get the scrub value, our default is 'true' because that feels nice with Lenis
+          const scrubAttr = trigger.getAttribute("data-parallax-scrub")
+          const scrub = scrubAttr ? parseFloat(scrubAttr) : true
 
-            // Get the start position in % 
-            const startAttr = trigger.getAttribute("data-parallax-start")
-            const startVal = startAttr !== null ? parseFloat(startAttr) : 20
+          // Get the start position in %
+          const startAttr = trigger.getAttribute("data-parallax-start")
+          const startVal = startAttr !== null ? parseFloat(startAttr) : 20
 
-            // Get the end position in %
-            const endAttr = trigger.getAttribute("data-parallax-end")
-            const endVal = endAttr !== null ? parseFloat(endAttr) : -20
+          // Get the end position in %
+          const endAttr = trigger.getAttribute("data-parallax-end")
+          const endVal = endAttr !== null ? parseFloat(endAttr) : -20
 
-            // Get the start value of the ScrollTrigger
-            const scrollStartRaw = trigger.getAttribute("data-parallax-scroll-start") ||
-              "top bottom"
-            const scrollStart = `clamp(${scrollStartRaw})`
+          // Get the start value of the ScrollTrigger
+          const scrollStartRaw = trigger.getAttribute("data-parallax-scroll-start") ||
+            "top bottom"
+          const scrollStart = `clamp(${scrollStartRaw})`
 
-            // Get the end value of the ScrollTrigger  
-            const scrollEndRaw = trigger.getAttribute("data-parallax-scroll-end") ||
-              "bottom top"
-            const scrollEnd = `clamp(${scrollEndRaw})`
+          // Get the end value of the ScrollTrigger
+          const scrollEndRaw = trigger.getAttribute("data-parallax-scroll-end") ||
+            "bottom top"
+          const scrollEnd = `clamp(${scrollEndRaw})`
 
-            gsap.fromTo(
-              target, {
-                [prop]: startVal
+          gsap.fromTo(
+            target, {
+              [prop]: startVal
+            },
+            {
+              [prop]: endVal,
+              ease: "none",
+              scrollTrigger: {
+                trigger,
+                start: scrollStart,
+                end: scrollEnd,
+                scrub,
               },
-              {
-                [prop]: endVal,
-                ease: "none",
-                scrollTrigger: {
-                  trigger,
-                  start: scrollStart,
-                  end: scrollEnd,
-                  scrub,
-                },
-              }
-            )
-          })
+            }
+          )
         })
-
-        return () => ctx.revert()
       }
     )
   }
@@ -369,20 +363,12 @@ function adGlobal() {
       });
 
       const inner = el.querySelector('[data-footer-parallax-inner]');
-      const dark = el.querySelector('[data-footer-parallax-dark]');
 
       if (inner) {
         tl.from(inner, {
           yPercent: -66,
           ease: 'linear'
         });
-      }
-
-      if (dark) {
-        tl.from(dark, {
-          opacity: 0.5,
-          ease: 'linear'
-        }, '<');
       }
     });
   }
@@ -392,15 +378,6 @@ function adGlobal() {
   //NAV MENU
   //NAV MENU
   //NAV MENU
-
-  safe("eases", () => {
-    CustomEase.create("main", "0.65, 0.01, 0.05, 0.99");
-
-    gsap.defaults({
-      ease: "main",
-      duration: 0.7
-    });
-  });
 
   function initSideNavigationWipeEffect() {
     let navWrap = document.querySelector(".nav")
@@ -712,6 +689,7 @@ function adGlobal() {
     sliderWrappers.forEach((sliderWrapper) => {
       const slides = gsap.utils.toArray(sliderWrapper.querySelectorAll(
         '[data-centered-slider="slide"]'));
+      // Bullets: only the WALL OF LOVE component has them (on no page yet, waiting for testimonials).
       const bullets = gsap.utils.toArray(sliderWrapper.querySelectorAll(
         '[data-centered-slider="bullet"]'));
       const prevButton = sliderWrapper.querySelector('[data-centered-slider="prev-button"]');
@@ -1025,13 +1003,6 @@ function adGlobal() {
 // adHome: home page only (Slater 48614 HOME.js)
 // ---------------------------------------------------------------------------
 function adHome() {
-    // gsap.to("#spinning_wave", {
-  //   rotate: 360,
-  //   duration: 10,
-  //   ease: "none",
-  //   repeat: -1
-  // });
-
   //dragable images hero
   //dragable images hero
   //dragable images hero
@@ -1081,16 +1052,10 @@ function adHome() {
     let currentEl = null;
     let currentIndex = 0;
 
-    //new resolve
-    function resolveActive(el) {
-      return el; // No offset. Active = actual slide.
-    }
-
     function applyActive(el, index, animateNumbers = true) {
       if (activeElement) activeElement.classList.remove('active');
-      const target = resolveActive(el);
-      target.classList.add('active');
-      activeElement = target;
+      el.classList.add('active'); // the active slide is the centred one, no offset
+      activeElement = el;
 
       if (allSteps.length) {
         if (animateNumbers) {
