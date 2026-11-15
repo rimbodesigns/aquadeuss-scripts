@@ -448,11 +448,11 @@ function adGlobal() {
     menuButtonTexts.forEach((p) => p.setAttribute("aria-hidden", "true"))
     navWrap.querySelectorAll(".menu-link .eyebrow").forEach((n) => n.setAttribute("aria-hidden", "true")) // "01" to "07"
 
-    // While the menu is open, everything outside the NavMenu is inert: Tab stays in the header
-    // and the menu (it used to walk on into the page hidden behind it, and scroll it), and screen
-    // readers only find the menu. Works at any nesting depth: every sibling of the NavMenu and of
-    // its ancestors up to <body>. closeNav releases exactly the elements set here.
-    const navSection = navWrap.closest(".nav_menu") || navWrap.parentElement
+    // While the menu is open, everything outside the menu and the header is inert: Tab stays in
+    // the header and the menu (it used to walk on into the page hidden behind it, and scroll it),
+    // and screen readers only find the menu. Works at any nesting depth: every sibling of the menu
+    // and of its ancestors up to <body>, except the part that holds the MENU button, so the button
+    // keeps closing the menu wherever the header sits. closeNav releases exactly the elements set here.
     let inertEls = []
     const setPageInert = (on) => {
       if (!on) {
@@ -460,12 +460,25 @@ function adGlobal() {
         inertEls = []
         return
       }
-      for (let el = navSection; el && el.parentElement && el !== document.body; el = el.parentElement) {
+      for (let el = navWrap; el.parentElement && el !== document.body; el = el.parentElement) {
         Array.from(el.parentElement.children).forEach((sibling) => {
-          if (sibling === el || sibling.inert || sibling.matches("script, style, link")) return
+          if (sibling === el || sibling.inert || sibling.contains(menuButton) ||
+            sibling.matches("script, style, link")) return
           sibling.inert = true
           inertEls.push(sibling)
         })
+      }
+    }
+
+    // The page behind the open menu stays put. Locomotive stops it; without Locomotive (reduce
+    // motion, where the footer code skips it) the page itself stops scrolling. No sideways shift:
+    // css/global.css keeps the scrollbar's space (scrollbar-gutter).
+    const lockScroll = (on) => {
+      if (window.locomotiveScroll) {
+        if (on) window.locomotiveScroll.stop()
+        else window.locomotiveScroll.start()
+      } else {
+        document.documentElement.style.overflow = on ? "hidden" : ""
       }
     }
 
@@ -475,7 +488,7 @@ function adGlobal() {
       navWrap.setAttribute("data-nav", "open")
       menuButton.setAttribute("aria-expanded", "true")
       menuButton.setAttribute("aria-label", "Close menu")
-      window.locomotiveScroll?.stop() // the page behind the open menu stays put
+      lockScroll(true)
       setPageInert(true)
 
       tl.clear()
@@ -514,7 +527,7 @@ function adGlobal() {
       navWrap.setAttribute("data-nav", "closed")
       menuButton.setAttribute("aria-expanded", "false")
       menuButton.setAttribute("aria-label", "Open menu")
-      window.locomotiveScroll?.start()
+      lockScroll(false)
       setPageInert(false)
       // Focus was inside the menu, which is about to be hidden: give it back to the button
       if (navWrap.contains(document.activeElement)) menuButton.focus({ preventScroll: true })
@@ -946,7 +959,8 @@ function adGlobal() {
       sliderWrapper.addEventListener("focusout", (event) => {
         if (!keyboardInside || sliderWrapper.contains(event.relatedTarget)) return;
         keyboardInside = false;
-        if (ScrollTrigger.isInViewport(sliderWrapper)) startAutoplay();
+        // The mouse may still be over it: then mouseleave restarts autoplay later
+        if (ScrollTrigger.isInViewport(sliderWrapper) && !sliderWrapper.matches(":hover")) startAutoplay();
       });
 
       // Slide click event for direct navigation
@@ -1019,12 +1033,14 @@ function adGlobal() {
       // Messages show inline in the form's own error box (.w-form-fail) instead of a
       // blocking alert(). Webflow's own "Something went wrong" text comes back afterwards.
       // A box without .form-notification-p gets its own text element for the note, so the
-      // box's other children (background, icon) are never overwritten.
+      // box's other children (background, icon) are never overwritten; any other text in that
+      // box is hidden while the note shows, so only the note is seen and read.
       const failBox = form.querySelector('.w-form-fail');
       const failText = failBox && failBox.querySelector('.form-notification-p');
       const webflowFailText = failText ? failText.textContent : '';
       let saved = null; // Webflow's role and aria-label on the box while a note is shown
       let ownText = null;
+      let hiddenText = []; // [node, its display or text] hidden next to ownText
       let noteTimer;
       const setAttr = (name, value) => {
         if (value === null) failBox.removeAttribute(name);
@@ -1032,7 +1048,14 @@ function adGlobal() {
       };
       const showNote = (text) => {
         if (!failBox) return;
-        const target = failText || ownText || (ownText = failBox.appendChild(document.createElement('div')));
+        if (!failText && !ownText) {
+          hiddenText = Array.from(failBox.childNodes)
+            .filter((n) => (n.nodeType === 1 || n.nodeType === 3) && n.textContent.trim())
+            .map((n) => [n, n.nodeType === 1 ? n.style.display : n.nodeValue]);
+          hiddenText.forEach(([n]) => { if (n.nodeType === 1) n.style.display = 'none'; else n.nodeValue = ''; });
+          ownText = failBox.appendChild(document.createElement('div'));
+        }
+        const target = failText || ownText;
         clearTimeout(noteTimer);
         if (saved) {
           // Already showing (a second fast Subscribe): empty it and put the text back a moment
@@ -1056,6 +1079,8 @@ function adGlobal() {
         failBox.style.display = '';
         if (failText) failText.textContent = webflowFailText;
         if (ownText) { ownText.remove(); ownText = null; }
+        hiddenText.forEach(([n, value]) => { if (n.nodeType === 1) n.style.display = value; else n.nodeValue = value; });
+        hiddenText = [];
       };
 
       // Screen readers: each field gets a short error text, linked with aria-describedby and
