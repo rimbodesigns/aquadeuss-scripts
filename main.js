@@ -1132,6 +1132,54 @@ function adGlobal() {
 
   safe("reveal", initReveal);
 
+  // CAL.COM, LAZY
+  // The inline Cal.com calendar downloads about 1.8 MB (85 requests) as soon as a page opens,
+  // although it sits near the bottom. With the lazy embed markup in Webflow (an empty div with
+  // data-cal-lazy, see release-1.3.0.md) it loads once the visitor scrolls within 800 px of it.
+  // Does nothing while the embeds still hold Cal.com's own inline snippet.
+  function initCalEmbed() {
+    const embeds = document.querySelectorAll("[data-cal-lazy]");
+    if (!embeds.length) return;
+    const started = new Set(); // Cal namespaces already initialised
+
+    const load = (el) => {
+      const calLink = el.getAttribute("data-cal-link");
+      if (!calLink) return;
+      const namespace = el.getAttribute("data-cal-namespace") || "15-min-call";
+      const layout = el.getAttribute("data-cal-layout") || "month_view";
+      if (!el.id) el.id = `cal-inline-${namespace}`;
+
+      // Cal.com's own loader snippet, unchanged
+      (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if(typeof namespace === "string"){cal.ns[namespace] = cal.ns[namespace] || api;p(cal.ns[namespace], ar);p(cal, ["initNamespace", namespace]);} else p(cal, ar); return;} p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+
+      if (!started.has(namespace)) {
+        window.Cal("init", namespace, { origin: "https://app.cal.com" });
+        started.add(namespace);
+      }
+      window.Cal.ns[namespace]("inline", {
+        elementOrSelector: `#${el.id}`,
+        config: { layout },
+        calLink
+      });
+      window.Cal.ns[namespace]("ui", { hideEventTypeDetails: false, layout });
+    };
+
+    if (!("IntersectionObserver" in window)) {
+      embeds.forEach(load);
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        io.unobserve(entry.target);
+        safe("cal embed load", () => load(entry.target));
+      });
+    }, { rootMargin: "800px 0px" });
+    embeds.forEach((el) => io.observe(el));
+  }
+
+  safe("cal embed", initCalEmbed);
+
   // SCROLL REFRESH
   // ScrollTrigger measures where each effect starts on load. Lazy images, the web fonts and the
   // Cal.com calendar arrive later and push everything below them down, so the parallax and the

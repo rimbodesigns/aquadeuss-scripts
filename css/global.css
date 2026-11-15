@@ -32,6 +32,16 @@
 .nav_menu .header.is-on-dark .logo_img,
 .nav_menu .header.is-on-dark .menu-button { filter: brightness(0) invert(1); }
 
+/* Lazy Cal.com calendar ([data-cal-lazy], loaded by main.js near the viewport): hold space
+   before it arrives. Measured heights of the 15-min-call calendar: 534-570 px on desktop and
+   about 2,100 px on a phone (it lists every time slot of the day). The minimums stay below
+   that, so no gap is left once it has loaded; the rest grows while it is still off screen.
+   overflow:auto, not scroll: no permanent scrollbars on Windows. */
+[data-cal-lazy] { width: 100%; min-height: 530px; overflow: auto; }
+@media (max-width: 767px) {
+  [data-cal-lazy] { min-height: 1000px; }
+}
+
 /* While the menu is open main.js stops Locomotive, which hides the page scrollbar
    (overflow:hidden). Keep the scrollbar's space so the page doesn't jump sideways on Windows. */
 html { scrollbar-gutter: stable; }
