@@ -1160,17 +1160,33 @@ function adGallery() {
           el.style.position = 'absolute';
           el.style.width = `calc(${wCalc})`;
         });
+        // Read every height first, then place the tiles. Reading a height right after moving the
+        // previous tile made the browser lay out the page again for every tile.
+        const heights = items.map(el => el.offsetHeight);
         items.forEach((el, i) => {
-          const h = el.offsetHeight;
           const idx = shuffle ?
             colHeights.indexOf(Math.min(...colHeights)) :
             (i % cols);
           el.style.top = `${colHeights[idx]}px`;
           el.style.left = `calc(${wCalc}*${idx} + var(--masonry-gap)*${idx})`;
-          colHeights[idx] += h + gapPx;
+          colHeights[idx] += heights[i] + gapPx;
         });
         container.style.height = `${Math.max(...colHeights)}px`;
       };
+
+      // Tiles without a shape class (is--square, is--tall, is--wide) are 0 px tall until their
+      // photo arrives, so every lazy photo counts as on screen and all of them load at once, and
+      // the grid jumps as each one lands. Hold a 3:2 space (the shape of most photos) until the
+      // photo has loaded. Does nothing once every tile has its shape in Webflow (audit IMG-04).
+      container.querySelectorAll('img').forEach(img => {
+        if (img.complete) return;
+        const visual = img.closest('.masonry-item__visual') || img.parentElement;
+        if (getComputedStyle(visual).aspectRatio !== 'auto') return;
+        visual.style.aspectRatio = '3 / 2';
+        const release = () => { visual.style.aspectRatio = ''; };
+        img.addEventListener('load', release, { once: true });
+        img.addEventListener('error', release, { once: true });
+      });
 
       // Debounce function
       const debounce = (fn, delay) => {
