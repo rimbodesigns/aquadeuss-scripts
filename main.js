@@ -12,6 +12,16 @@
 // Visitors who ask their device for less motion get no endless spins and no parallax.
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// Runs one feature. If it throws, the error is logged and the next feature still runs
+// (before v1.3.0 one error, e.g. the missing menu on the 404 page, stopped everything after it).
+function safe(name, fn) {
+  try {
+    fn();
+  } catch (err) {
+    console.error(`[aquadeuss] ${name} failed:`, err);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Shared helper: GSAP seamless loop (was duplicated in GLOBAL.js and HOME.js,
 // the two copies were identical apart from comments and whitespace)
@@ -244,7 +254,7 @@ function horizontalLoop(items, config) {
 function adGlobal() {
     //360
 
-  if (!reduceMotion) document.querySelectorAll("[rotate360], [rotate360_F]").forEach(el => {
+  if (!reduceMotion) safe("spin", () => document.querySelectorAll("[rotate360], [rotate360_F]").forEach(el => {
     const duration = parseFloat(el.getAttribute("rotate360")) || 12;
     const forward = !el.hasAttribute("rotate360_F");
     gsap.to(el, {
@@ -254,7 +264,7 @@ function adGlobal() {
       duration,
       transformOrigin: "center center"
     });
-  });
+  }));
 
   //logo movement
 
@@ -352,7 +362,7 @@ function adGlobal() {
       }
     )
   }
-  if (!reduceMotion) initGlobalParallax()
+  if (!reduceMotion) safe("parallax", initGlobalParallax)
 
   //FOOTER MENU
   //FOOTER MENU
@@ -387,22 +397,27 @@ function adGlobal() {
       }
     });
   }
-  if (!reduceMotion) initFooterParallax();
+  if (!reduceMotion) safe("footer parallax", initFooterParallax);
 
   //NAV MENU
   //NAV MENU
   //NAV MENU
   //NAV MENU
 
-  CustomEase.create("main", "0.65, 0.01, 0.05, 0.99");
+  safe("eases", () => {
+    CustomEase.create("main", "0.65, 0.01, 0.05, 0.99");
 
-  gsap.defaults({
-    ease: "main",
-    duration: 0.7
+    gsap.defaults({
+      ease: "main",
+      duration: 0.7
+    });
   });
 
   function initSideNavigationWipeEffect() {
     let navWrap = document.querySelector(".nav")
+    let menuButton = document.querySelector(".menu-button")
+    // The 404 and password pages have no NavMenu.
+    if (!navWrap || !menuButton) return;
     let state = navWrap.getAttribute("data-nav")
     let overlay = navWrap.querySelector(".overlay")
     let menu = navWrap.querySelector(".menu")
@@ -410,7 +425,6 @@ function adGlobal() {
     let menuToggles = document.querySelectorAll("[data-menu-toggle]")
     let menuLinks = navWrap.querySelectorAll(".menu-link")
     let fadeTargets = navWrap.querySelectorAll("[data-menu-fade]")
-    let menuButton = document.querySelector(".menu-button")
     let menuButtonTexts = menuButton.querySelectorAll("p")
     let menuButtonIcon = menuButton.querySelector(".menu-button-icon")
 
@@ -471,7 +485,7 @@ function adGlobal() {
     });
   }
 
-  initSideNavigationWipeEffect();
+  safe("nav menu", initSideNavigationWipeEffect);
 
   //FAQ
   //FAQ
@@ -503,7 +517,7 @@ function adGlobal() {
       });
     });
   }
-  initAccordionCSS();
+  safe("faq", initAccordionCSS);
 
   // logo section
   // logo section
@@ -516,6 +530,7 @@ function adGlobal() {
 
     document.querySelectorAll('[data-logo-wall-cycle-init]').forEach(root => {
       const list = root.querySelector('[data-logo-wall-list]');
+      if (!list) return;
       const items = Array.from(list.querySelectorAll('[data-logo-wall-item]'));
 
       const shuffleFront = root.getAttribute('data-logo-wall-shuffle') !== 'false';
@@ -650,7 +665,7 @@ function adGlobal() {
     });
   }
 
-  initLogoWallCycle();
+  safe("logo wall", initLogoWallCycle);
 
   function initDirectionalButtonHover() {
     // Button hover animation
@@ -693,15 +708,15 @@ function adGlobal() {
     }
   }
 
-  initDirectionalButtonHover();
+  safe("button hover", initDirectionalButtonHover);
 
   //testimo + tech
   //testimo + tech
   //testimo + tech
-
-  CustomEase.create("osmo-ease", "0.625, 0.05, 0, 1")
 
   function initSliders() {
+    CustomEase.create("osmo-ease", "0.625, 0.05, 0, 1")
+
     const sliderWrappers = gsap.utils.toArray(document.querySelectorAll(
       '[data-centered-slider="wrapper"]'));
 
@@ -842,7 +857,7 @@ function adGlobal() {
     });
   }
 
-  initSliders()
+  safe("sliders", initSliders)
 
   //BasicForm
   //BasicForm
@@ -856,8 +871,9 @@ function adGlobal() {
       const fields = form.querySelectorAll('[data-validate] input, [data-validate] textarea');
       const submitButtonDiv = form.querySelector(
         '[data-submit]'); // The div wrapping the submit button
-      const submitInput = submitButtonDiv.querySelector(
+      const submitInput = submitButtonDiv && submitButtonDiv.querySelector(
         'input[type="submit"]'); // The actual submit button
+      if (!submitButtonDiv || !submitInput) return; // a form without the custom Subscribe button
 
       // Capture the form load time
       const formLoadTime = new Date().getTime(); // Timestamp when the form was loaded
@@ -974,11 +990,11 @@ function adGlobal() {
     });
   }
 
-  initBasicFormValidation();
+  safe("form validation", initBasicFormValidation);
 
   // Service option cards (For private clients / For architects): on 4 pages, so global.
   // Only on devices with a real hover, so a tap on a phone doesn't leave a card scaled up.
-  if (window.matchMedia("(hover: hover)").matches) document.querySelectorAll(".option_block").forEach((block) => {
+  if (window.matchMedia("(hover: hover)").matches) safe("card hover", () => document.querySelectorAll(".option_block").forEach((block) => {
     const tagDark = block.querySelector(".tag.dark");
 
     block.addEventListener("mouseenter", () => {
@@ -1014,7 +1030,7 @@ function adGlobal() {
         });
       }
     });
-  });
+  }));
 
   // NAV ON DARK
   // The logo and MENU are dark blue. Over sections marked data-nav-theme="dark"
@@ -1056,7 +1072,7 @@ function adGlobal() {
     update();
   }
 
-  initNavOnDark();
+  safe("nav on dark", initNavOnDark);
 }
 
 // ---------------------------------------------------------------------------
@@ -1172,7 +1188,7 @@ function adHome() {
   }
 
 
-  initDraggableInfiniteGSAPSlider();
+  safe("hero slider", initDraggableInfiniteGSAPSlider);
 }
 
 // ---------------------------------------------------------------------------
@@ -1273,7 +1289,7 @@ function adGallery() {
       };
     });
   }
-  initMasonryGrid();
+  safe("masonry", initMasonryGrid);
 }
 
 // ---------------------------------------------------------------------------
