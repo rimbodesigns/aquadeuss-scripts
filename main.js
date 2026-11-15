@@ -1110,6 +1110,28 @@ function adGlobal() {
 
   safe("nav on dark", initNavOnDark);
 
+  // REVEAL
+  // Replaces Webflow's old "slide in from bottom" interactions on the calendar embeds, so the
+  // ~20 KB interaction engine can go: put data-reveal on the element in Webflow and delete its
+  // interaction. Same motion as the preset (from 100 px lower and transparent, 1 s, ease out),
+  // once, when it scrolls into view. Unlike the interaction, the element stays visible if this
+  // script fails or the visitor asks for less motion. Never use it on what a page opens with
+  // (Contact's photo block): that would hide the main image until the script runs.
+  function initReveal() {
+    if (reduceMotion) return;
+    gsap.utils.toArray("[data-reveal]").forEach((el) => {
+      gsap.from(el, {
+        autoAlpha: 0,
+        y: 100,
+        duration: 1,
+        ease: "power3.out",
+        scrollTrigger: { trigger: el, start: "top bottom", once: true }
+      });
+    });
+  }
+
+  safe("reveal", initReveal);
+
   // SCROLL REFRESH
   // ScrollTrigger measures where each effect starts on load. Lazy images, the web fonts and the
   // Cal.com calendar arrive later and push everything below them down, so the parallax and the
