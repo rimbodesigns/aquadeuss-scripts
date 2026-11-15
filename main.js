@@ -8,7 +8,8 @@
  * Needs GSAP + ScrollTrigger, CustomEase, Draggable, InertiaPlugin (Webflow GSAP integration),
  * registered by the inline gsap.registerPlugin(...) in the Webflow footer before this file
  * (SplitText is loaded there too but nothing here uses it).
- * Needs css/global.css in the Global Styles embed: orbit spin, card hover, white logo/MENU, FAQ buttons.
+ * Needs css/global.css in a Global Styles embed (the compact block in release-1.3.0.md): orbit spin,
+ * card hover, white logo/MENU, FAQ buttons. Keep that embed as long as this file is v1.3.0 or later.
  */
 (() => {
 
@@ -296,6 +297,16 @@ function adGlobal() {
   // runs that off the main thread, and visitors who ask for less motion get still rings.
   // The #LOGO_ICON rotation timer is gone: no page has that element (v1.1.0 already kept it idle).
 
+  // A number on the attribute still sets the seconds per turn, as before v1.3.0 (rotate360="20");
+  // empty keeps the CSS default of 12 s. The CSS reads it as --spin-duration.
+  function initOrbitSpeed() {
+    document.querySelectorAll("[rotate360]").forEach((el) => {
+      const seconds = parseFloat(el.getAttribute("rotate360"));
+      if (seconds > 0) el.style.setProperty("--spin-duration", `${seconds}s`);
+    });
+  }
+  safe("orbit speed", initOrbitSpeed);
+
   //PARALAX
   //PARALAX
   //PARALAX
@@ -437,6 +448,27 @@ function adGlobal() {
     menuButtonTexts.forEach((p) => p.setAttribute("aria-hidden", "true"))
     navWrap.querySelectorAll(".menu-link .eyebrow").forEach((n) => n.setAttribute("aria-hidden", "true")) // "01" to "07"
 
+    // While the menu is open, everything outside the NavMenu is inert: Tab stays in the header
+    // and the menu (it used to walk on into the page hidden behind it, and scroll it), and screen
+    // readers only find the menu. Works at any nesting depth: every sibling of the NavMenu and of
+    // its ancestors up to <body>. closeNav releases exactly the elements set here.
+    const navSection = navWrap.closest(".nav_menu") || navWrap.parentElement
+    let inertEls = []
+    const setPageInert = (on) => {
+      if (!on) {
+        inertEls.forEach((el) => { el.inert = false })
+        inertEls = []
+        return
+      }
+      for (let el = navSection; el && el.parentElement && el !== document.body; el = el.parentElement) {
+        Array.from(el.parentElement.children).forEach((sibling) => {
+          if (sibling === el || sibling.inert || sibling.matches("script, style, link")) return
+          sibling.inert = true
+          inertEls.push(sibling)
+        })
+      }
+    }
+
     let tl = gsap.timeline()
 
     const openNav = () => {
@@ -444,6 +476,7 @@ function adGlobal() {
       menuButton.setAttribute("aria-expanded", "true")
       menuButton.setAttribute("aria-label", "Close menu")
       window.locomotiveScroll?.stop() // the page behind the open menu stays put
+      setPageInert(true)
 
       tl.clear()
         .set(navWrap, { display: "block" })
@@ -464,14 +497,17 @@ function adGlobal() {
           yPercent: 0,
           stagger: 0.04
         }, "<+=0.2")
-        // Keyboard users land on the first link once the menu is in. Skipped if they already
-        // tabbed somewhere else while it animated.
+        // Focus lands on the first link once the menu is in, as in a dialog, also after a mouse
+        // or tap open (no ring then: the site's focus style is :focus-visible only). Skipped if
+        // the visitor already tabbed somewhere else while it animated.
         .add(() => {
           const focused = document.activeElement
           if (menuLinks[0] && (focused === menuButton || focused === document.body || !focused)) {
             menuLinks[0].focus({ preventScroll: true })
           }
         })
+      // Less motion: no 1.4 s wipe, the menu is simply there (and focus moves at once)
+      if (reduceMotion) tl.progress(1)
     }
 
     const closeNav = () => {
@@ -479,6 +515,7 @@ function adGlobal() {
       menuButton.setAttribute("aria-expanded", "false")
       menuButton.setAttribute("aria-label", "Open menu")
       window.locomotiveScroll?.start()
+      setPageInert(false)
       // Focus was inside the menu, which is about to be hidden: give it back to the button
       if (navWrap.contains(document.activeElement)) menuButton.focus({ preventScroll: true })
 
@@ -488,6 +525,7 @@ function adGlobal() {
         .to(menuButtonTexts, { yPercent: 0, color: darkBlue }, "<")
         .to(menuButtonIcon, { rotate: 0, color: darkBlue }, "<")
         .set(navWrap, { display: "none" })
+      if (reduceMotion) tl.progress(1)
     }
 
     // Toggle menu open / close depending on its current state
@@ -517,16 +555,25 @@ function adGlobal() {
   //FAQ
 
   function initAccordionCSS() {
+    const accordions = document.querySelectorAll('[data-accordion-css-init]');
+    if (!accordions.length) return;
     let answerCount = 0; // ids stay unique even with two FAQs on one page
 
-    document.querySelectorAll('[data-accordion-css-init]').forEach((accordion) => {
+    // The buttons below only look like the old heading text with the reset in css/global.css
+    // (Global Styles embed), which also sets --ad-faq-buttons. Without it they would show as grey
+    // browser buttons, so the questions stay as they were (mouse only) and the console says why.
+    const buttonCss = getComputedStyle(document.documentElement)
+      .getPropertyValue('--ad-faq-buttons').trim() === '1';
+    if (!buttonCss) console.warn('[aquadeuss] FAQ: css/global.css embed not found, questions stay mouse-only');
+
+    accordions.forEach((accordion) => {
       const closeSiblings = accordion.getAttribute('data-accordion-close-siblings') === 'true';
 
       // Keyboard and screen readers: each question's text moves into a real <button> inside its
       // heading, so Tab reaches it, Enter and Space open it, and aria-expanded says whether it is
       // open. The heading stays, so the questions keep their place in the page outline.
       // The button looks like plain text through .accordion-css__btn in css/global.css.
-      accordion.querySelectorAll('[data-accordion-toggle]').forEach((toggle) => {
+      if (buttonCss) accordion.querySelectorAll('[data-accordion-toggle]').forEach((toggle) => {
         const item = toggle.closest('[data-accordion-status]');
         const heading = toggle.querySelector('h2, h3, h4');
         const answer = item && item.querySelector('.accordion-css__item-bottom');
@@ -605,8 +652,9 @@ function adGlobal() {
 
       // Swap logos only while the wall is on screen and the tab is visible
       // (it used to start at page load and restart on every return to the tab).
+      // Never for visitors who ask for less motion: the first set of logos just stays.
       const playIfVisible = () => {
-        if (st && st.isActive && !document.hidden) tl.play();
+        if (!reduceMotion && st && st.isActive && !document.hidden) tl.play();
         else tl.pause();
       };
 
@@ -723,6 +771,11 @@ function adGlobal() {
       playIfVisible();
 
       document.addEventListener('visibilitychange', playIfVisible);
+
+      // With no swaps, swapNext never notices a breakpoint that shows more slots: fill them here.
+      if (reduceMotion) onWidthChange(() => {
+        if (items.filter(isVisible).length !== visibleCount) setup();
+      });
     });
   }
 
@@ -794,6 +847,7 @@ function adGlobal() {
       let activeBullet;
       let currentIndex = 0;
       let autoplay;
+      let keyboardInside = false; // keyboard focus is on the arrows: autoplay waits
 
       // Autoplay is now enabled/disabled via a boolean attribute.
       const autoplayEnabled = sliderWrapper.getAttribute('data-slider-autoplay') === 'true';
@@ -844,6 +898,8 @@ function adGlobal() {
       loop.toIndex(2, { duration: 0.01 });
 
       function startAutoplay() {
+        // No autoplay for visitors who ask for less motion, nor while a keyboard user is on it
+        if (reduceMotion || keyboardInside) return;
         if (autoplayDuration > 0 && !autoplay) {
           const repeat = () => {
             loop.next({ ease: "osmo-ease", duration: 0.725 });
@@ -874,6 +930,22 @@ function adGlobal() {
       // Pause autoplay on mouse hover over the slider
       sliderWrapper.addEventListener("mouseenter", stopAutoplay);
       sliderWrapper.addEventListener("mouseleave", () => {
+        if (ScrollTrigger.isInViewport(sliderWrapper)) startAutoplay();
+      });
+
+      // ...and while keyboard focus is inside it, so keyboard users can stop it too (WCAG 2.2.2).
+      // Keyboard focus only (:focus-visible): a mouse click on an arrow behaves as before.
+      const isKeyboardFocus = (el) => {
+        try { return el.matches(":focus-visible"); } catch (err) { return true; } // older browsers
+      };
+      sliderWrapper.addEventListener("focusin", (event) => {
+        if (!isKeyboardFocus(event.target)) return;
+        keyboardInside = true;
+        stopAutoplay();
+      });
+      sliderWrapper.addEventListener("focusout", (event) => {
+        if (!keyboardInside || sliderWrapper.contains(event.relatedTarget)) return;
+        keyboardInside = false;
         if (ScrollTrigger.isInViewport(sliderWrapper)) startAutoplay();
       });
 
@@ -928,6 +1000,7 @@ function adGlobal() {
 
   function initBasicFormValidation() {
     const forms = document.querySelectorAll('[data-form-validate]');
+    let errorCount = 0; // unique ids for the error texts below
 
     forms.forEach((form) => {
       const fields = form.querySelectorAll('[data-validate] input, [data-validate] textarea');
@@ -945,27 +1018,59 @@ function adGlobal() {
 
       // Messages show inline in the form's own error box (.w-form-fail) instead of a
       // blocking alert(). Webflow's own "Something went wrong" text comes back afterwards.
+      // A box without .form-notification-p gets its own text element for the note, so the
+      // box's other children (background, icon) are never overwritten.
       const failBox = form.querySelector('.w-form-fail');
-      const failText = failBox && (failBox.querySelector('.form-notification-p') || failBox);
+      const failText = failBox && failBox.querySelector('.form-notification-p');
       const webflowFailText = failText ? failText.textContent : '';
-      let webflowFailRole = null;
-      let noteShown = false;
+      let saved = null; // Webflow's role and aria-label on the box while a note is shown
+      let ownText = null;
+      let noteTimer;
+      const setAttr = (name, value) => {
+        if (value === null) failBox.removeAttribute(name);
+        else failBox.setAttribute(name, value);
+      };
       const showNote = (text) => {
         if (!failBox) return;
-        if (!noteShown) webflowFailRole = failBox.getAttribute('role');
-        noteShown = true;
-        failText.textContent = text;
-        failBox.setAttribute('role', 'alert'); // read out by screen readers
+        const target = failText || ownText || (ownText = failBox.appendChild(document.createElement('div')));
+        clearTimeout(noteTimer);
+        if (saved) {
+          // Already showing (a second fast Subscribe): empty it and put the text back a moment
+          // later. Screen readers only speak an alert again when its text changes.
+          target.textContent = '';
+          noteTimer = setTimeout(() => { target.textContent = text; }, 100);
+          return;
+        }
+        saved = { role: failBox.getAttribute('role'), label: failBox.getAttribute('aria-label') };
+        failBox.setAttribute('role', 'alert'); // read out by screen readers...
+        failBox.removeAttribute('aria-label'); // ...as the message, not as Webflow's "Newsletter failure"
+        target.textContent = text;
         failBox.style.display = 'block';
       };
       const hideNote = () => {
-        if (!noteShown) return; // Webflow's own message: leave it
-        noteShown = false;
-        if (webflowFailRole) failBox.setAttribute('role', webflowFailRole);
-        else failBox.removeAttribute('role');
+        if (!saved) return; // Webflow's own message: leave it
+        clearTimeout(noteTimer);
+        setAttr('role', saved.role);
+        setAttr('aria-label', saved.label);
+        saved = null;
         failBox.style.display = '';
-        failText.textContent = webflowFailText;
+        if (failText) failText.textContent = webflowFailText;
+        if (ownText) { ownText.remove(); ownText = null; }
       };
+
+      // Screen readers: each field gets a short error text, linked with aria-describedby and
+      // filled only while the field is invalid. Visually hidden: the red border and icon show it.
+      const errorTexts = new Map();
+      fields.forEach((field) => {
+        const text = document.createElement('span');
+        text.id = `form-error-${++errorCount}`;
+        text.style.cssText = 'position:absolute;width:1px;height:1px;margin:-1px;padding:0;' +
+          'border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap';
+        field.closest('[data-validate]').appendChild(text);
+        const describedBy = field.getAttribute('aria-describedby');
+        field.setAttribute('aria-describedby', describedBy ? `${describedBy} ${text.id}` : text.id);
+        errorTexts.set(field, text);
+      });
 
       // Function to validate individual fields (input or textarea)
       const validateField = (field) => {
@@ -1006,6 +1111,13 @@ function adGlobal() {
           parent.classList.add('is--error');
         }
         field.setAttribute('aria-invalid', String(!isValid)); // screen readers hear the red state too
+        const errorText = errorTexts.get(field);
+        if (errorText) {
+          errorText.textContent = isValid ? '' :
+            field.value.trim() === '' ? 'Please fill in this field.' :
+            type === 'email' ? 'Please enter a valid e-mail address.' :
+            'Please check this field.';
+        }
 
         return isValid;
       };
@@ -1049,18 +1161,30 @@ function adGlobal() {
 
       // Validate, then submit through the real (hidden) submit input
       const trySubmit = () => {
-        hideNote();
-        if (!validateAndStartLiveValidationForAll()) return;
+        if (!validateAndStartLiveValidationForAll()) {
+          hideNote();
+          return;
+        }
         // Only check for spam after all fields are valid
         if (isSpam()) {
           showNote('Form submitted too quickly. Please wait a few seconds and try again.');
           return; // Stop form submission
         }
+        hideNote();
         submitInput.click(); // Simulate a click on the <input type="submit">
       };
 
       // Handle clicking the custom submit button
       submitButtonDiv.addEventListener('click', trySubmit);
+
+      // The Subscribe control is a div in the Webflow markup: screen readers announce it as a
+      // button, and Space presses it like one (Enter goes through the form's keydown below).
+      submitButtonDiv.setAttribute('role', 'button');
+      submitButtonDiv.addEventListener('keydown', (event) => {
+        if (event.key !== ' ') return;
+        event.preventDefault(); // no page scroll
+        if (!event.repeat) trySubmit();
+      });
 
       // Handle pressing the "Enter" key
       form.addEventListener('keydown', function (event) {
@@ -1359,10 +1483,12 @@ function adGallery() {
       // photo arrives, so every lazy photo counts as on screen and all of them load at once, and
       // the grid jumps as each one lands. Hold a 3:2 space (the shape of most photos) until the
       // photo has loaded. Does nothing once every tile has its shape in Webflow (audit IMG-04).
-      container.querySelectorAll('img').forEach(img => {
-        if (img.complete) return;
-        const visual = img.closest('.masonry-item__visual') || img.parentElement;
-        if (getComputedStyle(visual).aspectRatio !== 'auto') return;
+      // All reads first, then all writes: one style calculation instead of one per tile.
+      const unshaped = Array.from(container.querySelectorAll('img'))
+        .filter(img => !img.complete)
+        .map(img => ({ img, visual: img.closest('.masonry-item__visual') || img.parentElement }))
+        .filter(({ visual }) => getComputedStyle(visual).aspectRatio === 'auto');
+      unshaped.forEach(({ img, visual }) => {
         visual.style.aspectRatio = '3 / 2';
         const release = () => { visual.style.aspectRatio = ''; };
         img.addEventListener('load', release, { once: true });

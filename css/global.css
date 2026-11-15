@@ -1,14 +1,17 @@
 /*
- * Aquadeuss: CSS that main.js v1.3.0 relies on.
- * Paste everything below into a new Code Embed in the Global Styles component,
- * wrapped in <style> ... </style> (see release-1.3.0.md).
+ * Aquadeuss: CSS that main.js v1.3.0 relies on. This file is the commented source.
+ * Do not paste this file into Webflow: paste the compact block from release-1.3.0.md (step 3),
+ * which is this CSS without the comments, already wrapped in a style element.
+ * Keep that embed as long as main.js is v1.3.0 or later: without it the rings stand still,
+ * the cards lose their hover and the FAQ questions are mouse-only again.
  * Colours use the Webflow brand variables; the hex after the comma is the fallback.
  */
 
 /* Home orbit rings ([rotate360]): a slow endless spin, was a GSAP tween in main.js.
-   No spin for visitors who ask their device for less motion. */
+   12 s per turn; a number on the attribute (rotate360="20") sets other seconds per turn, as
+   before: main.js copies it to --spin-duration. No spin for visitors who ask for less motion. */
 @keyframes ad-spin { to { transform: rotate(360deg); } }
-[rotate360] { animation: ad-spin 12s linear infinite; }
+[rotate360] { animation: ad-spin var(--spin-duration, 12s) linear infinite; }
 @media (prefers-reduced-motion: reduce) {
   [rotate360] { animation: none; }
 }
@@ -26,7 +29,7 @@
 }
 
 /* Logo and MENU turn white over [data-nav-theme="dark"] sections and while the menu is open.
-   main.js toggles .is-on-dark on the header; this was a <style> tag built by main.js v1.2.0. */
+   main.js toggles .is-on-dark on the header; main.js v1.2.0 built this rule itself. */
 .nav_menu .header .logo_img,
 .nav_menu .header .menu-button { transition: filter .35s ease; }
 .nav_menu .header.is-on-dark .logo_img,
@@ -48,7 +51,9 @@ html { scrollbar-gutter: stable; }
 
 /* FAQ: main.js puts each question's text in a <button> inside its heading, so keyboards can
    open it. The button looks exactly like the heading text did; the focus ring matches the
-   site's other focus style. */
+   site's other focus style. main.js only makes the buttons when it sees --ad-faq-buttons,
+   so they never show as grey browser buttons if this CSS is missing. */
+:root { --ad-faq-buttons: 1; }
 .accordion-css__btn {
   display: block;
   width: 100%;
@@ -67,3 +72,9 @@ html { scrollbar-gutter: stable; }
   cursor: pointer;
 }
 .accordion-css__btn:focus-visible { outline: .125rem solid #4d65ff; outline-offset: .25rem; }
+
+/* A closed answer is only squeezed to 0 px; hide it from screen readers and Tab as well, so
+   what they find matches the button's aria-expanded. Hidden once the 0.6 s close animation
+   (site CSS on .accordion-css__item-bottom) has finished, visible at once when opening. */
+.accordion-css__item-bottom > * { visibility: hidden; transition: visibility 0s .6s; }
+[data-accordion-status="active"] .accordion-css__item-bottom > * { visibility: visible; transition-delay: 0s; }
