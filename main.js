@@ -252,19 +252,8 @@ function horizontalLoop(items, config) {
 // adGlobal: every page (Slater 48613 GLOBAL.js)
 // ---------------------------------------------------------------------------
 function adGlobal() {
-    //360
-
-  if (!reduceMotion) safe("spin", () => document.querySelectorAll("[rotate360], [rotate360_F]").forEach(el => {
-    const duration = parseFloat(el.getAttribute("rotate360")) || 12;
-    const forward = !el.hasAttribute("rotate360_F");
-    gsap.to(el, {
-      rotation: forward ? 360 : -360,
-      repeat: -1,
-      ease: "none",
-      duration,
-      transformOrigin: "center center"
-    });
-  }));
+  // The Home orbit rings ([rotate360]) spin in CSS since v1.3.0 (css/global.css): the browser
+  // runs that off the main thread, and visitors who ask for less motion get still rings.
 
   //logo movement
 
@@ -992,60 +981,17 @@ function adGlobal() {
 
   safe("form validation", initBasicFormValidation);
 
-  // Service option cards (For private clients / For architects): on 4 pages, so global.
-  // Only on devices with a real hover, so a tap on a phone doesn't leave a card scaled up.
-  if (window.matchMedia("(hover: hover)").matches) safe("card hover", () => document.querySelectorAll(".option_block").forEach((block) => {
-    const tagDark = block.querySelector(".tag.dark");
-
-    block.addEventListener("mouseenter", () => {
-      gsap.to(block, {
-        borderColor: "#048f93",
-        scale: 1.03,
-        duration: 0.3,
-        ease: "power2.out"
-      });
-
-      if (tagDark) {
-        gsap.to(tagDark, {
-          backgroundColor: "#048f93",
-          duration: 0.3,
-          ease: "power2.out"
-        });
-      }
-    });
-
-    block.addEventListener("mouseleave", () => {
-      gsap.to(block, {
-        borderColor: "#1d5754",
-        scale: 1,
-        duration: 0.3,
-        ease: "power2.inOut"
-      });
-
-      if (tagDark) {
-        gsap.to(tagDark, {
-          backgroundColor: "#1d5754",
-          duration: 0.3,
-          ease: "power2.inOut"
-        });
-      }
-    });
-  }));
+  // The service option card hover (.option_block) is plain CSS since v1.3.0 (css/global.css).
 
   // NAV ON DARK
   // The logo and MENU are dark blue. Over sections marked data-nav-theme="dark"
   // (service options, footer, contact booking) and while the menu is open
-  // (its panels are dark blue too) they turn white.
+  // (its panels are dark blue too) they turn white: this toggles .is-on-dark on the
+  // header, and the white filter itself is in css/global.css.
   function initNavOnDark() {
     const header = document.querySelector(".nav_menu .header");
     if (!header) return;
     const nav = document.querySelector(".nav_menu .nav");
-
-    const style = document.createElement("style");
-    style.textContent =
-      ".nav_menu .header .logo_img,.nav_menu .header .menu-button{transition:filter .35s ease}" +
-      ".nav_menu .header.is-on-dark .logo_img,.nav_menu .header.is-on-dark .menu-button{filter:brightness(0) invert(1)}";
-    document.head.appendChild(style);
 
     const active = new Set();
     const update = () => {

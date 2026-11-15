@@ -1,0 +1,33 @@
+/*
+ * Aquadeuss: CSS that main.js v1.3.0 relies on.
+ * Paste everything below into a new Code Embed in the Global Styles component,
+ * wrapped in <style> ... </style> (see release-1.3.0.md).
+ * Colours use the Webflow brand variables; the hex after the comma is the fallback.
+ */
+
+/* Home orbit rings ([rotate360]): a slow endless spin, was a GSAP tween in main.js.
+   No spin for visitors who ask their device for less motion. */
+@keyframes ad-spin { to { transform: rotate(360deg); } }
+[rotate360] { animation: ad-spin 12s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  [rotate360] { animation: none; }
+}
+
+/* Service option cards: scale up and turn turquoise on hover, was GSAP in main.js.
+   Only on devices with a real hover, so a tap on a phone doesn't leave a card scaled up. */
+.option_block { transition: transform .3s ease, border-color .3s ease; }
+.option_block .tag.dark { transition: background-color .3s ease; }
+@media (hover: hover) {
+  .option_block:hover {
+    transform: scale(1.03);
+    border-color: var(--aqua-deuss-turquase--turquoise, #048f93);
+  }
+  .option_block:hover .tag.dark { background-color: var(--aqua-deuss-turquase--turquoise, #048f93); }
+}
+
+/* Logo and MENU turn white over [data-nav-theme="dark"] sections and while the menu is open.
+   main.js toggles .is-on-dark on the header; this was a <style> tag built by main.js v1.2.0. */
+.nav_menu .header .logo_img,
+.nav_menu .header .menu-button { transition: filter .35s ease; }
+.nav_menu .header.is-on-dark .logo_img,
+.nav_menu .header.is-on-dark .menu-button { filter: brightness(0) invert(1); }
