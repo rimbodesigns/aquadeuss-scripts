@@ -12,7 +12,7 @@ What changes on the site, what to paste where, and how to check it. Background: 
 
 ## 0. Before tagging: confirm the hero slider click (audit CODE-15)
 
-v1.3.0 changes what a click on a Home hero slide does on desktop. Check the old behaviour first, on staging as it is now (v1.0.0 and v1.2.0 behave the same), in a desktop browser window 1280 px or wider:
+v1.3.0 changes what a click on a Home hero slide does on desktop. Check the old behaviour first, on staging as it is now (v1.0.0 and v1.2.0 behave the same), in a desktop browser window 1366 px or wider. Not narrower: at 1280 px only a thin strip of the right-hand slide shows and the fixed "Book a call" button covers most of it, so a click there hits the button and the check looks broken.
 
 - [ ] Click the slide to the right of the active (centred) one: nothing happens.
 - [ ] Click the slide to the left of the active one: the slider jumps back two slides, not one (watch the 01/05 counter).
@@ -33,7 +33,7 @@ git tag v1.3.0
 git push origin refs/tags/v1.3.0
 ```
 
-Check that `https://cdn.jsdelivr.net/gh/rimbodesigns/aquadeuss-scripts@v1.3.0/main.min.js` opens and starts with the v1.3.0 header comment.
+Check that `https://cdn.jsdelivr.net/gh/rimbodesigns/aquadeuss-scripts@v1.3.0/main.min.js` opens, starts with "Minified by jsDelivr" and "Original file: /gh/rimbodesigns/aquadeuss-scripts@1.3.0/main.js", and contains `--ad-faq-buttons` (Ctrl+F / Cmd+F; that name only exists from v1.3.0 on). The minified file has no header comment: jsDelivr's minifier removes it.
 
 ## 2. Site settings → Custom code → Footer
 
@@ -63,7 +63,7 @@ Replace the whole Footer field with this. Changes from v1.2.0: the tag says `@v1
 </script>
 ```
 
-Keep `window.locomotiveScroll = ...`: main.js v1.3.0 uses it to stop the page scrolling behind the open menu.
+Keep `window.locomotiveScroll = ...`: main.js v1.3.0 uses it to stop the page scrolling behind the open menu (with reduce motion there is no Locomotive, and main.js stops the page itself).
 
 ## 3. Global Styles component: one new Code Embed
 
@@ -174,7 +174,7 @@ Use a desktop browser at 1280 px or wider, with the console open, plus a phone (
 **Scroll and motion**
 - [ ] Smooth scrolling feels as before; parallax blocks and the footer reveal still move.
 - [ ] Home: the orbit rings spin.
-- [ ] With Reduce motion on (macOS: System Settings → Accessibility → Display → Reduce motion; iPhone: Settings → Accessibility → Motion), reload Home: rings stand still, no parallax, normal (not smooth) scrolling, the Technologies slider does not autoplay, and MENU opens and closes at once, without the wipe. Partners (once the logo wall is visible again): the logos stay put.
+- [ ] With Reduce motion on (macOS: System Settings → Accessibility → Display → Reduce motion; iPhone: Settings → Accessibility → Motion), reload Home: rings stand still, no parallax, normal (not smooth) scrolling, the Technologies slider does not autoplay, and MENU opens and closes at once, without the wipe; the page behind the open menu still does not scroll (mouse wheel, or a swipe on the phone). Partners (once the logo wall is visible again): the logos stay put.
 - [ ] Logo and MENU turn white exactly where a service options section or the footer passes under them (also after scrolling down fast and back up), and while the menu is open. The footer only reaches the logo when the window is shorter than about 765 px (the footer is 726 px tall); same as v1.2.0.
 
 **Menu**
@@ -193,8 +193,8 @@ Use a desktop browser at 1280 px or wider, with the console open, plus a phone (
 
 **Cards and sliders**
 - [ ] Service option cards (Home, About, Gallery, Partners): hover scales up with a turquoise border and tag; moving away returns them to teal. On a phone a tap does not leave a card scaled.
-- [ ] Home hero slider at 1280 px or wider: clicking the slide on the right moves one forward, the one on the left one back (v1.2.0 did nothing on the right and jumped back two on the left). Arrows, drag and the 01/05 counter work.
-- [ ] Technologies slider (Home, For Architects): autoplays when in view, arrows work, drag works. Autoplay pauses while the mouse is over it, and while Tab focus is on one of its arrows; it goes on once focus or mouse leave.
+- [ ] Home hero slider at 1366 px or wider (see step 0): clicking the slide on the right moves one forward, the one on the left one back (v1.2.0 did nothing on the right and jumped back two on the left). Arrows, drag and the 01/05 counter work.
+- [ ] Technologies slider (Home, For Architects): autoplays when in view, arrows work, drag works. Autoplay pauses while the mouse is over it, and while Tab focus is on one of its arrows; it goes on once both have left (tabbing away with the mouse still over it keeps it paused).
 - [ ] Resize the window narrower and wider: the active slide stays centred. On a phone, scrolling (address bar sliding) does not make sliders jump.
 
 **Gallery**

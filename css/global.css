@@ -3,7 +3,8 @@
  * Do not paste this file into Webflow: paste the compact block from release-1.3.0.md (step 3),
  * which is this CSS without the comments, already wrapped in a style element.
  * Keep that embed as long as main.js is v1.3.0 or later: without it the rings stand still,
- * the cards lose their hover and the FAQ questions are mouse-only again.
+ * the cards lose their hover, the logo and MENU stay dark over dark sections and the FAQ
+ * questions are mouse-only again.
  * Colours use the Webflow brand variables; the hex after the comma is the fallback.
  */
 

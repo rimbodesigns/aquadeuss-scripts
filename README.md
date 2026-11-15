@@ -29,16 +29,17 @@ Tested on 2026-11-14 against the original Slater setup (staging pages served loc
   - Gallery: heights are read in one go before tiles are placed; tiles without a shape class hold a 3:2 space until their photo loads.
   - Home orbit spin, service-card hover and the white logo/MENU filter are CSS now (`css/global.css`).
   - Partners logo wall only animates while on screen.
-  - More reduced-motion coverage: no logo wall swaps, no Technologies slider autoplay, and the menu opens and closes without the wipe. The slider's autoplay also pauses while keyboard focus is on its arrows.
-  - Newsletter: live checks are added once; "submitted too quickly" shows inline instead of `alert()` and is read out as that message (also on a repeat); fields get `aria-invalid` and a screen-reader error text; Subscribe is announced as a button and Space presses it; `minlength` is honoured.
+  - More reduced-motion coverage: no logo wall swaps, no Technologies slider autoplay, and the menu opens and closes without the wipe. The slider's autoplay also pauses while keyboard focus is on its arrows (and stays paused if the mouse is still over it when focus leaves).
+  - Newsletter: live checks are added once; "submitted too quickly" shows inline instead of `alert()` and is read out as that message (also on a repeat), on its own in the error box; fields get `aria-invalid` and a screen-reader error text; Subscribe is announced as a button and Space presses it; `minlength` is honoured.
   - FAQ questions are real buttons (Tab, Enter, Space, `aria-expanded`, `aria-controls`), only when the `css/global.css` embed is there (otherwise they stay as they were and the console says so). Closed answers are hidden from screen readers.
-  - Menu button: `aria-label` Open/Close menu, `aria-expanded`, `aria-controls`; focus moves into the menu and back; the page stops scrolling behind the open menu and is inert while it is open, so Tab stays in the header and menu.
+  - Menu button: `aria-label` Open/Close menu, `aria-expanded`, `aria-controls`; focus moves into the menu and back; the page stops scrolling behind the open menu (also with reduce motion, where Locomotive is off) and is inert while it is open, so Tab stays in the header and menu. The part of the page holding the MENU button is never made inert, wherever the header sits.
   - Home hero slider: clicking a slide on desktop goes to that slide (it went to the one before it).
   - MENU colours come from the brand variables (hex as fallback).
   - New, inactive until used in Webflow: `data-reveal` (replaces the slide-in interactions) and the lazy Cal.com loader (`data-cal-lazy`).
   - Removed dead code: the `#LOGO_ICON` timer, the footer dark overlay, the `rotate360_F` variant, commented-out code, `resolveActive()`, a redundant `gsap.context`. `CustomEase` "main" and `gsap.defaults` moved to the top.
   - Tested against v1.2.0 on the same downloaded staging pages (11 pages incl. 404 and password): same ScrollTrigger count on every page, no console errors, same section positions on Home and tile positions on Gallery, FAQ questions the same size.
   - Review fixes tested on the same kind of harness (6 pages and the 404, 1440 and 375 px): same ScrollTrigger counts, page heights and gallery tile positions as before the fixes; Tab stays in the open menu at 375 and 1024 px; with reduce motion the menu opens at once, the logo wall and the Technologies autoplay stay still; closed FAQ answers are out of the accessibility tree.
+  - Verification fixes tested the same way (10 pages, 1440 and 375 px, also with `main.js` minified by Terser as jsDelivr does): ScrollTrigger counts still the same as v1.2.0 on every page; with reduce motion the page behind the open menu no longer scrolls (wheel and touch); the inert set is unchanged on every page, and with the header moved out of the menu section the MENU button still closes the menu; tabbing out of the Technologies slider under the mouse keeps autoplay paused.
 
 - **v1.2.0**: the logo and MENU turn white over sections with the attribute `data-nav-theme="dark"` (Service options component, the Home and Contact copies of it, Footer) and while the menu is open. Add the attribute to any new dark section in Webflow and it just works.
 - **v1.1.0**: visitors with *reduce motion* on get no endless spins and no parallax (the footer code also skips smooth scroll for them); the logo timer only runs when `#LOGO_ICON` exists and pauses in background tabs; the service-card hover works on every page with the cards, on devices with a real hover; invalid ease `"ease"` written as the `power1.out` GSAP was already using.
@@ -111,8 +112,9 @@ Still inline in Webflow: `gsap.registerPlugin(...)`, the Locomotive Scroll setup
 
 ## Release flow
 1. Edit `main.js`, commit, push.
-2. `git tag vX.Y.Z` and push the tag.
-3. Update the version in the Webflow footer tag.
-4. Publish to staging (webflow.io), test, then publish live.
+2. If `css/global.css` changed: update the compact block in the release notes to match, and paste it into the Global Styles embed in the same publish as the new footer tag (step 4). The embed is not loaded from this repo, so a change to the file alone never reaches the site.
+3. `git tag vX.Y.Z` and push the tag.
+4. Update the version in the Webflow footer tag.
+5. Publish to staging (webflow.io), test, then publish live.
 
 This repository is public (jsDelivr needs that): no passwords, API keys or client data in here.
