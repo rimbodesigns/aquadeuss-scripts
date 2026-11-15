@@ -1109,6 +1109,33 @@ function adGlobal() {
   }
 
   safe("nav on dark", initNavOnDark);
+
+  // SCROLL REFRESH
+  // ScrollTrigger measures where each effect starts on load. Lazy images, the web fonts and the
+  // Cal.com calendar arrive later and push everything below them down, so the parallax and the
+  // white logo/MENU switched at the old positions. Re-measure (debounced) whenever the page
+  // height changes, and once the fonts are in. Last in adGlobal, so it covers every trigger.
+  function initScrollRefresh() {
+    let timer;
+    const refresh = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => ScrollTrigger.refresh(), 200);
+    };
+
+    if ("ResizeObserver" in window) {
+      let lastHeight = document.body.offsetHeight;
+      new ResizeObserver(() => {
+        const height = document.body.offsetHeight;
+        if (height === lastHeight) return; // width-only changes: ScrollTrigger handles resize itself
+        lastHeight = height;
+        refresh();
+      }).observe(document.body);
+    }
+
+    if (document.fonts) document.fonts.ready.then(refresh);
+  }
+
+  safe("scroll refresh", initScrollRefresh);
 }
 
 // ---------------------------------------------------------------------------
