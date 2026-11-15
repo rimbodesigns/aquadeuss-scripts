@@ -870,10 +870,38 @@ function adGlobal() {
       // Capture the form load time
       const formLoadTime = new Date().getTime(); // Timestamp when the form was loaded
 
+      // Live checks are added once per form; they used to be added again on every Subscribe click.
+      let liveStarted = false;
+
+      // Messages show inline in the form's own error box (.w-form-fail) instead of a
+      // blocking alert(). Webflow's own "Something went wrong" text comes back afterwards.
+      const failBox = form.querySelector('.w-form-fail');
+      const failText = failBox && (failBox.querySelector('.form-notification-p') || failBox);
+      const webflowFailText = failText ? failText.textContent : '';
+      let webflowFailRole = null;
+      let noteShown = false;
+      const showNote = (text) => {
+        if (!failBox) return;
+        if (!noteShown) webflowFailRole = failBox.getAttribute('role');
+        noteShown = true;
+        failText.textContent = text;
+        failBox.setAttribute('role', 'alert'); // read out by screen readers
+        failBox.style.display = 'block';
+      };
+      const hideNote = () => {
+        if (!noteShown) return; // Webflow's own message: leave it
+        noteShown = false;
+        if (webflowFailRole) failBox.setAttribute('role', webflowFailRole);
+        else failBox.removeAttribute('role');
+        failBox.style.display = '';
+        failText.textContent = webflowFailText;
+      };
+
       // Function to validate individual fields (input or textarea)
       const validateField = (field) => {
         const parent = field.closest('[data-validate]'); // Get the parent div
-        const minLength = field.getAttribute('min');
+        // minlength once the Designer uses it on the Name field; its old min="1" works until then
+        const minLength = field.minLength > 0 ? field.minLength : field.getAttribute('min');
         const maxLength = field.getAttribute('max');
         const type = field.getAttribute('type');
         let isValid = true;
@@ -907,15 +935,9 @@ function adGlobal() {
           parent.classList.remove('is--success');
           parent.classList.add('is--error');
         }
+        field.setAttribute('aria-invalid', String(!isValid)); // screen readers hear the red state too
 
         return isValid;
-      };
-
-      // Function to start live validation for a field
-      const startLiveValidation = (field) => {
-        field.addEventListener('input', function () {
-          validateField(field);
-        });
       };
 
       // Function to validate and start live validation for all fields, focusing on the first field with an error
@@ -931,8 +953,13 @@ function adGlobal() {
           if (!valid) {
             allValid = false;
           }
-          startLiveValidation(field); // Start live validation for all fields
         });
+
+        // From the first Subscribe on, each field re-checks itself while the visitor types
+        if (!liveStarted) {
+          liveStarted = true;
+          fields.forEach((field) => field.addEventListener('input', () => validateField(field)));
+        }
 
         // If there is an invalid field, focus on the first one
         if (firstInvalidField) {
@@ -950,33 +977,26 @@ function adGlobal() {
         return timeDifference < 5; // Return true if form is filled within 5 seconds
       };
 
-      // Handle clicking the custom submit button
-      submitButtonDiv.addEventListener('click', function () {
-        // Validate the form first
-        if (validateAndStartLiveValidationForAll()) {
-          // Only check for spam after all fields are valid
-          if (isSpam()) {
-            alert('Form submitted too quickly. Please try again.');
-            return; // Stop form submission
-          }
-          submitInput.click(); // Simulate a click on the <input type="submit">
+      // Validate, then submit through the real (hidden) submit input
+      const trySubmit = () => {
+        hideNote();
+        if (!validateAndStartLiveValidationForAll()) return;
+        // Only check for spam after all fields are valid
+        if (isSpam()) {
+          showNote('Form submitted too quickly. Please wait a few seconds and try again.');
+          return; // Stop form submission
         }
-      });
+        submitInput.click(); // Simulate a click on the <input type="submit">
+      };
+
+      // Handle clicking the custom submit button
+      submitButtonDiv.addEventListener('click', trySubmit);
 
       // Handle pressing the "Enter" key
       form.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
           event.preventDefault(); // Prevent the default form submission
-
-          // Validate the form first
-          if (validateAndStartLiveValidationForAll()) {
-            // Only check for spam after all fields are valid
-            if (isSpam()) {
-              alert('Form submitted too quickly. Please try again.');
-              return; // Stop form submission
-            }
-            submitInput.click(); // Trigger our custom form submission
-          }
+          trySubmit();
         }
       });
     });
