@@ -31,3 +31,25 @@
 .nav_menu .header .menu-button { transition: filter .35s ease; }
 .nav_menu .header.is-on-dark .logo_img,
 .nav_menu .header.is-on-dark .menu-button { filter: brightness(0) invert(1); }
+
+/* FAQ: main.js puts each question's text in a <button> inside its heading, so keyboards can
+   open it. The button looks exactly like the heading text did; the focus ring matches the
+   site's other focus style. */
+.accordion-css__btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.accordion-css__btn:focus-visible { outline: .125rem solid #4d65ff; outline-offset: .25rem; }

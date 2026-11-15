@@ -479,8 +479,38 @@ function adGlobal() {
   //FAQ
 
   function initAccordionCSS() {
+    let answerCount = 0; // ids stay unique even with two FAQs on one page
+
     document.querySelectorAll('[data-accordion-css-init]').forEach((accordion) => {
       const closeSiblings = accordion.getAttribute('data-accordion-close-siblings') === 'true';
+
+      // Keyboard and screen readers: each question's text moves into a real <button> inside its
+      // heading, so Tab reaches it, Enter and Space open it, and aria-expanded says whether it is
+      // open. The heading stays, so the questions keep their place in the page outline.
+      // The button looks like plain text through .accordion-css__btn in css/global.css.
+      accordion.querySelectorAll('[data-accordion-toggle]').forEach((toggle) => {
+        const item = toggle.closest('[data-accordion-status]');
+        const heading = toggle.querySelector('h2, h3, h4');
+        const answer = item && item.querySelector('.accordion-css__item-bottom');
+        if (!heading || !answer || heading.querySelector('button')) return;
+        answerCount += 1;
+        if (!answer.id) answer.id = `faq-answer-${answerCount}`;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'accordion-css__btn';
+        button.setAttribute('aria-controls', answer.id);
+        button.append(...heading.childNodes);
+        heading.appendChild(button);
+      });
+
+      const syncExpanded = () => {
+        accordion.querySelectorAll('[data-accordion-status]').forEach((item) => {
+          const button = item.querySelector('.accordion-css__btn');
+          if (button) button.setAttribute('aria-expanded',
+            String(item.getAttribute('data-accordion-status') === 'active'));
+        });
+      };
+      syncExpanded();
 
       accordion.addEventListener('click', (event) => {
         const toggle = event.target.closest('[data-accordion-toggle]');
@@ -501,6 +531,8 @@ function adGlobal() {
               'not-active');
           });
         }
+
+        syncExpanded(); // also "false" on the questions that just closed
       });
     });
   }
