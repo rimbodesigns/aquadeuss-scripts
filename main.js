@@ -531,6 +531,14 @@ function adGlobal() {
       let pattern = [];
       let patternIndex = 0;
       let tl;
+      let st; // the ScrollTrigger that says whether the wall is on screen
+
+      // Swap logos only while the wall is on screen and the tab is visible
+      // (it used to start at page load and restart on every return to the tab).
+      const playIfVisible = () => {
+        if (st && st.isActive && !document.hidden) tl.play();
+        else tl.pause();
+      };
 
       function isVisible(el) {
         return window.getComputedStyle(el).display !== 'none';
@@ -582,9 +590,9 @@ function adGlobal() {
           parent.appendChild(pool.shift());
         }
 
-        tl = gsap.timeline({ repeat: -1, repeatDelay: loopDelay });
+        tl = gsap.timeline({ repeat: -1, repeatDelay: loopDelay, paused: true });
         tl.call(swapNext);
-        tl.play();
+        playIfVisible();
       }
 
       function swapNext() {
@@ -636,19 +644,15 @@ function adGlobal() {
 
       setup();
 
-      ScrollTrigger.create({
+      st = ScrollTrigger.create({
         trigger: root,
         start: 'top bottom',
         end: 'bottom top',
-        onEnter: () => tl.play(),
-        onLeave: () => tl.pause(),
-        onEnterBack: () => tl.play(),
-        onLeaveBack: () => tl.pause()
+        onToggle: playIfVisible
       });
+      playIfVisible();
 
-      document.addEventListener('visibilitychange', () =>
-        document.hidden ? tl.pause() : tl.play()
-      );
+      document.addEventListener('visibilitychange', playIfVisible);
     });
   }
 
