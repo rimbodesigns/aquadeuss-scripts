@@ -3,9 +3,12 @@
  * Migrated from Slater project 17429 on 2026-11-14. Originals in slater/.
  * v1.1.0: reduced-motion support, logo timer pauses in background tabs, service-card hover on every page.
  * v1.2.0: logo and MENU turn white over [data-nav-theme="dark"] sections and while the menu is open.
+ * v1.3.0: audit package P1: errors stay contained, scroll effects re-measure, keyboard FAQ and menu, CSS hovers, lazy Cal.com ready.
  * One section per page or feature; the router at the bottom decides what runs where.
- * Needs GSAP + ScrollTrigger, SplitText, CustomEase, Draggable, InertiaPlugin (Webflow GSAP integration),
- * registered by the inline gsap.registerPlugin(...) in the Webflow footer before this file.
+ * Needs GSAP + ScrollTrigger, CustomEase, Draggable, InertiaPlugin (Webflow GSAP integration),
+ * registered by the inline gsap.registerPlugin(...) in the Webflow footer before this file
+ * (SplitText is loaded there too but nothing here uses it).
+ * Needs css/global.css in the Global Styles embed: orbit spin, card hover, white logo/MENU, FAQ buttons.
  */
 (() => {
 

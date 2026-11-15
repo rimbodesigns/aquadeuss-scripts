@@ -3,25 +3,48 @@
 Site-wide JavaScript for the Aquadeuss website (Webflow, staging: [staging-aquadeuss.webflow.io](https://staging-aquadeuss.webflow.io/)), migrated from Slater (project 17429) on 2026-11-14.
 
 - `main.js`: everything in one file. One section per page or feature (`adGlobal`, `adHome`, `adGallery`); the router at the bottom decides what runs where.
+- `css/global.css`: the CSS main.js relies on since v1.3.0 (orbit spin, service-card hover, white logo/MENU, FAQ buttons, lazy calendar space). It lives in a Code Embed in the Webflow Global Styles component; this file is the commented source.
+- `release-1.3.0.md`: what to paste where for the v1.3.0 release, and the test checklist.
 - `slater/`: the original Slater files, as they were on 2026-11-14. Reference only, not loaded on the site.
 
 | Section | Runs on | Came from |
 | --- | --- | --- |
-| `horizontalLoop` | shared helper | GSAP seamless loop, was in both GLOBAL.js and HOME.js (identical) |
-| `adGlobal` | every page | 48613 GLOBAL.js: logo rotation, parallax, footer parallax, side nav wipe, FAQ accordion, logo wall cycle, button hover, sliders, form validation; plus the service-card hover (was home only) |
+| `safe`, `brandColor`, `onWidthChange` | shared helpers | new in v1.3.0: one failing feature no longer stops the rest; brand colours from the Webflow variables; resize work only after a real width change |
+| `horizontalLoop` | shared helper | GSAP seamless loop, was in both GLOBAL.js and HOME.js (identical); re-measures only after a width change since v1.3.0 |
+| `adGlobal` | every page | 48613 GLOBAL.js: parallax, footer parallax, side nav wipe (with `aria-expanded`, scroll stops while open), FAQ accordion (keyboard buttons), logo wall cycle (only while on screen), button hover, sliders, form validation (inline messages) |
+| `initNavOnDark` | every page (inside `adGlobal`) | new in v1.2.0: white logo/MENU over `[data-nav-theme="dark"]` and while the menu is open (the filter itself is in `css/global.css` since v1.3.0) |
+| `initReveal`, `initCalEmbed`, `initScrollRefresh` | every page (inside `adGlobal`) | new in v1.3.0: `[data-reveal]` slide-in replacing the old Webflow interactions; lazy Cal.com for `[data-cal-lazy]` embeds; ScrollTrigger re-measures when late content changes the page height |
 | `adHome` | `/` | 48614 HOME.js: draggable hero slider |
-| `initNavOnDark` | every page (inside `adGlobal`) | new in v1.2.0: white logo/MENU over `[data-nav-theme="dark"]` and while the menu is open |
 | `adGallery` | `/gallery` | 52058 GALERY-test.js: masonry grid |
+| `css/global.css` | every page (Global Styles embed) | moved out of main.js in v1.3.0: orbit ring spin (was `rotate360` GSAP tweens), service-card hover (was GSAP), white logo/MENU filter (was a `<style>` tag built by main.js) |
 
 Tested on 2026-11-14 against the original Slater setup (staging pages served locally with the Slater tags swapped for `main.js`): same ScrollTriggers, slider state, FAQ and masonry layout on `/`, `/gallery` and `/contact`, no errors from `main.js`.
 
 ## Changes
+
+- **v1.3.0** (audit 2026-11-15, package P1; needs the `css/global.css` embed, see `release-1.3.0.md`):
+  - Each feature runs through `safe()`: an error is logged and the rest still runs. The 404 and password pages no longer throw (no NavMenu there).
+  - ScrollTrigger re-measures when the page height changes (lazy images, the calendar, fonts), so the parallax and the white logo/MENU switch at the right place.
+  - Sliders and the gallery ignore resize events that only change the height (phone address bar) and wait 150 ms (100 ms gallery) after a width change.
+  - Gallery: heights are read in one go before tiles are placed; tiles without a shape class hold a 3:2 space until their photo loads.
+  - Home orbit spin, service-card hover and the white logo/MENU filter are CSS now (`css/global.css`).
+  - Partners logo wall only animates while on screen.
+  - Newsletter: live checks are added once; "submitted too quickly" shows inline instead of `alert()`; fields get `aria-invalid`; `minlength` is honoured.
+  - FAQ questions are real buttons (Tab, Enter, Space, `aria-expanded`, `aria-controls`).
+  - Menu button: `aria-label` Open/Close menu, `aria-expanded`, `aria-controls`; focus moves into the menu and back; the page stops scrolling behind the open menu.
+  - Home hero slider: clicking a slide on desktop goes to that slide (it went to the one before it).
+  - MENU colours come from the brand variables (hex as fallback).
+  - New, inactive until used in Webflow: `data-reveal` (replaces the slide-in interactions) and the lazy Cal.com loader (`data-cal-lazy`).
+  - Removed dead code: the `#LOGO_ICON` timer, the footer dark overlay, the `rotate360_F` variant, commented-out code, `resolveActive()`, a redundant `gsap.context`. `CustomEase` "main" and `gsap.defaults` moved to the top.
+  - Tested against v1.2.0 on the same downloaded staging pages (11 pages incl. 404 and password): same ScrollTrigger count on every page, no console errors, same section positions on Home and tile positions on Gallery, FAQ questions the same size.
 
 - **v1.2.0**: the logo and MENU turn white over sections with the attribute `data-nav-theme="dark"` (Service options component, the Home and Contact copies of it, Footer) and while the menu is open. Add the attribute to any new dark section in Webflow and it just works.
 - **v1.1.0**: visitors with *reduce motion* on get no endless spins and no parallax (the footer code also skips smooth scroll for them); the logo timer only runs when `#LOGO_ICON` exists and pauses in background tabs; the service-card hover works on every page with the cards, on devices with a real hover; invalid ease `"ease"` written as the `power1.out` GSAP was already using.
 - **v1.0.0**: straight port from Slater.
 
 ## Webflow custom code (current)
+
+This is the v1.2.0 setup. The v1.3.0 release changes the head, the footer and Global Styles: see `release-1.3.0.md`.
 
 Site settings → Custom code. **Head:**
 
