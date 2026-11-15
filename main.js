@@ -32,6 +32,12 @@ safe("eases", () => {
   });
 });
 
+// A brand colour from the Webflow variables (published CSS names), so a palette change in Webflow
+// reaches main.js too. The hex is the fallback if the variable is renamed or missing.
+function brandColor(variable, fallback) {
+  return getComputedStyle(document.documentElement).getPropertyValue(variable).trim() || fallback;
+}
+
 // Calls fn once the window WIDTH changed and then stayed put for `delay` ms. Phones fire resize
 // whenever the address bar slides in or out; that only changes the height, which moves nothing here.
 function onWidthChange(fn, delay = 150) {
@@ -414,6 +420,9 @@ function adGlobal() {
     let fadeTargets = navWrap.querySelectorAll("[data-menu-fade]")
     let menuButtonTexts = menuButton.querySelectorAll("p")
     let menuButtonIcon = menuButton.querySelector(".menu-button-icon")
+    // MENU text: dark blue on the page, light on the open (dark blue) menu
+    const darkBlue = brandColor("--aqua-deuss-bleu--dark-bleu", "#001a54")
+    const light = brandColor("--background-colors--dim_turqyase", "#eff8fb")
 
     let tl = gsap.timeline()
 
@@ -423,12 +432,12 @@ function adGlobal() {
       tl.clear()
         .set(navWrap, { display: "block" })
         .set(menu, { xPercent: 0 }, "<")
-        .fromTo(menuButtonTexts, { yPercent: 0, color: "#001A54" }, {
+        .fromTo(menuButtonTexts, { yPercent: 0, color: darkBlue }, {
           yPercent: -100,
-          color: "#EFF8FB",
+          color: light,
           stagger: 0.2
         })
-        .fromTo(menuButtonIcon, { rotate: 0, color: "#001A54" }, { rotate: 315, color: "#EFF8FB" },
+        .fromTo(menuButtonIcon, { rotate: 0, color: darkBlue }, { rotate: 315, color: light },
           "<")
         .fromTo(overlay, { autoAlpha: 0 }, { autoAlpha: 1 }, "<")
         .fromTo(bgPanels, { xPercent: 101 }, { xPercent: 0, stagger: 0.12, duration: 0.575 }, "<")
@@ -447,8 +456,8 @@ function adGlobal() {
       tl.clear()
         .to(overlay, { autoAlpha: 0 })
         .to(menu, { xPercent: 120 }, "<")
-        .to(menuButtonTexts, { yPercent: 0, color: "#001A54" }, "<")
-        .to(menuButtonIcon, { rotate: 0, color: "#001A54" }, "<")
+        .to(menuButtonTexts, { yPercent: 0, color: darkBlue }, "<")
+        .to(menuButtonIcon, { rotate: 0, color: darkBlue }, "<")
         .set(navWrap, { display: "none" })
     }
 
