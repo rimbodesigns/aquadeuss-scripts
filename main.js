@@ -2,6 +2,7 @@
  * Aquadeuss site scripts (staging-aquadeuss.webflow.io)
  * Migrated from Slater project 17429 on 2026-11-14. Originals in slater/.
  * v1.1.0: reduced-motion support, logo timer pauses in background tabs, service-card hover on every page.
+ * v1.2.0: logo and MENU turn white over [data-nav-theme="dark"] sections and while the menu is open.
  * One section per page or feature; the router at the bottom decides what runs where.
  * Needs GSAP + ScrollTrigger, SplitText, CustomEase, Draggable, InertiaPlugin (Webflow GSAP integration),
  * registered by the inline gsap.registerPlugin(...) in the Webflow footer before this file.
@@ -1014,6 +1015,48 @@ function adGlobal() {
       }
     });
   });
+
+  // NAV ON DARK
+  // The logo and MENU are dark blue. Over sections marked data-nav-theme="dark"
+  // (service options, footer, contact booking) and while the menu is open
+  // (its panels are dark blue too) they turn white.
+  function initNavOnDark() {
+    const header = document.querySelector(".nav_menu .header");
+    if (!header) return;
+    const nav = document.querySelector(".nav_menu .nav");
+
+    const style = document.createElement("style");
+    style.textContent =
+      ".nav_menu .header .logo_img,.nav_menu .header .menu-button{transition:filter .35s ease}" +
+      ".nav_menu .header.is-on-dark .logo_img,.nav_menu .header.is-on-dark .menu-button{filter:brightness(0) invert(1)}";
+    document.head.appendChild(style);
+
+    const active = new Set();
+    const update = () => {
+      const menuOpen = nav && nav.getAttribute("data-nav") === "open";
+      header.classList.toggle("is-on-dark", menuOpen || active.size > 0);
+    };
+    // The switch happens where the middle of the header crosses a section edge.
+    const line = () => Math.round(header.getBoundingClientRect().top + header.offsetHeight / 2);
+
+    document.querySelectorAll('[data-nav-theme="dark"]').forEach((section) => {
+      ScrollTrigger.create({
+        trigger: section,
+        start: () => `top ${line()}px`,
+        end: () => `bottom ${line()}px`,
+        invalidateOnRefresh: true,
+        onToggle: (self) => {
+          self.isActive ? active.add(section) : active.delete(section);
+          update();
+        }
+      });
+    });
+
+    if (nav) new MutationObserver(update).observe(nav, { attributes: true, attributeFilter: ["data-nav"] });
+    update();
+  }
+
+  initNavOnDark();
 }
 
 // ---------------------------------------------------------------------------
