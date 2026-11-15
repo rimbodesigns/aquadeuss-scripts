@@ -32,6 +32,26 @@ safe("eases", () => {
   });
 });
 
+// Calls fn once the window WIDTH changed and then stayed put for `delay` ms. Phones fire resize
+// whenever the address bar slides in or out; that only changes the height, which moves nothing here.
+function onWidthChange(fn, delay = 150) {
+  let lastWidth = window.innerWidth;
+  let timer;
+  const handler = () => {
+    if (window.innerWidth === lastWidth) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      lastWidth = window.innerWidth;
+      fn();
+    }, delay);
+  };
+  window.addEventListener("resize", handler);
+  return () => {
+    clearTimeout(timer);
+    window.removeEventListener("resize", handler);
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Shared helper: GSAP seamless loop (was duplicated in GLOBAL.js and HOME.js,
 // the two copies were identical apart from comments and whitespace)
@@ -158,7 +178,8 @@ function horizontalLoop(items, config) {
     populateWidths();
     populateTimeline();
     populateOffsets();
-    window.addEventListener("resize", onResize);
+    // Re-measure only after a real width change, once resizing has stopped (was: on every resize event).
+    const stopResize = onWidthChange(onResize);
 
     function toIndex(index, vars) {
       vars = vars || {};
@@ -252,7 +273,7 @@ function horizontalLoop(items, config) {
     lastIndex = curIndex;
     onChange && onChange(items[curIndex], curIndex);
     timeline = tl;
-    return () => window.removeEventListener("resize", onResize);
+    return stopResize;
   });
   return timeline;
 
@@ -1160,9 +1181,8 @@ function adGallery() {
         };
       };
 
-      // Resize handler
-      const onResize = debounce(layout, 100);
-      window.addEventListener('resize', onResize);
+      // Resize handler: only when the width changed (the phone address bar changes the height only)
+      const stopResize = onWidthChange(layout, 100);
 
       // Watch for image loads (fallback if no aspect-ratio defined)
       const debouncedLayout = debounce(layout, 50);
@@ -1186,7 +1206,7 @@ function adGallery() {
           imgLoad();
         },
         destroy: () => {
-          window.removeEventListener('resize', onResize);
+          stopResize();
           const items = Array.from(container.children);
           items.forEach(el => {
             el.style.position =
