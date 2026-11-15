@@ -4,9 +4,20 @@ What changes on the site, what to paste where, and how to check it. Background: 
 
 **When.** After the three running Designer sessions are done and the first publish (audit CODE-01) has put v1.2.0 live and it has been checked. Not while P4 or P6 is editing the Global Styles component.
 
-**Steps 1 to 4 go out in one publish.** The FAQ buttons, the orbit spin, the card hover and the white logo/MENU need the new CSS (step 3) and main.js v1.3.0 (step 2) together. The CSS alone is harmless with v1.2.0, so pasting it first is fine. Step 5 (lazy calendar) and step 6 (`data-reveal`) are optional and come later, with package P2.
+**Steps 1 to 4 go out in one publish.** The FAQ buttons, the orbit spin, the card hover and the white logo/MENU need the new CSS (step 3) and main.js v1.3.0 (step 2) together. You can paste the CSS in the Designer early, but it must go live in the same publish as the `@v1.3.0` footer. Publishing is site-wide, so if another package publishes while only the CSS is in, the CSS goes live with v1.2.0, and the card hover runs about twice as slow (v1.2.0's GSAP hover then runs through the new CSS transitions) until v1.3.0 ships. Step 5 (lazy calendar) and step 6 (`data-reveal`) are optional and come later, with package P2.
+
+**The new Global Styles embed stays as long as main.js is v1.3.0 or later.** Without it the rings stand still, the cards lose their hover, the logo stays dark over dark sections, and the FAQ questions go back to mouse-only (main.js then logs `FAQ: css/global.css embed not found`). Package P6 trims the Global Styles embeds (CODE-17): it must keep this one.
 
 ---
+
+## 0. Before tagging: confirm the hero slider click (audit CODE-15)
+
+v1.3.0 changes what a click on a Home hero slide does on desktop. Check the old behaviour first, on staging as it is now (v1.0.0 and v1.2.0 behave the same), in a desktop browser window 1280 px or wider:
+
+- [ ] Click the slide to the right of the active (centred) one: nothing happens.
+- [ ] Click the slide to the left of the active one: the slider jumps back two slides, not one (watch the 01/05 counter).
+
+If that is what you see, go on with step 1. If a click already goes to the clicked slide, stop and tell Claude before tagging: v1.3.0 would then change something that works.
 
 ## 1. Merge and tag (repo)
 
@@ -56,12 +67,12 @@ Keep `window.locomotiveScroll = ...`: main.js v1.3.0 uses it to stop the page sc
 
 ## 3. Global Styles component: one new Code Embed
 
-Add a Code Embed inside the Global Styles component, after the existing embeds, and paste this. It is `css/global.css` without the comments (1.2 KB); the commented version in the repo is the source, so change that file first if anything here needs to change.
+Add a Code Embed inside the Global Styles component, after the existing embeds, and paste this block. It is `css/global.css` without the comments (1.4 KB). Paste this block, never the file itself: the commented file is the source in the repo, so change it first if anything here needs to change, then copy the change into this block.
 
 ```html
 <style>
 @keyframes ad-spin{to{transform:rotate(360deg)}}
-[rotate360]{animation:ad-spin 12s linear infinite}
+[rotate360]{animation:ad-spin var(--spin-duration,12s) linear infinite}
 @media (prefers-reduced-motion:reduce){[rotate360]{animation:none}}
 .option_block{transition:transform .3s ease,border-color .3s ease}
 .option_block .tag.dark{transition:background-color .3s ease}
@@ -72,8 +83,11 @@ Add a Code Embed inside the Global Styles component, after the existing embeds, 
 [data-cal-lazy]{width:100%;min-height:530px;overflow:auto}
 @media (max-width:767px){[data-cal-lazy]{min-height:1000px}}
 html{scrollbar-gutter:stable}
+:root{--ad-faq-buttons:1}
 .accordion-css__btn{display:block;width:100%;margin:0;padding:0;border:0;border-radius:0;background:none;-webkit-appearance:none;appearance:none;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;text-align:left;cursor:pointer}
 .accordion-css__btn:focus-visible{outline:.125rem solid #4d65ff;outline-offset:.25rem}
+.accordion-css__item-bottom>*{visibility:hidden;transition:visibility 0s .6s}
+[data-accordion-status="active"] .accordion-css__item-bottom>*{visibility:visible;transition-delay:0s}
 </style>
 ```
 
@@ -81,14 +95,16 @@ What each line is for:
 
 | Rule | Why |
 | --- | --- |
-| `ad-spin`, `[rotate360]` | Home orbit rings spin in CSS (was GSAP every frame, even off screen); none with reduce motion |
+| `ad-spin`, `[rotate360]` | Home orbit rings spin in CSS (was GSAP every frame, even off screen); none with reduce motion. 12 s per turn; a number on the attribute (`rotate360="20"`) still sets other seconds per turn, as before (main.js passes it on as `--spin-duration`) |
 | `.option_block` | Service card hover: scale 1.03, turquoise border and tag, hover devices only (was GSAP) |
 | `.nav_menu .header ...` | White logo/MENU over `[data-nav-theme="dark"]` and with the menu open (main.js v1.2.0 injected this itself) |
 | `[data-cal-lazy]` | Space for the lazy calendar of step 5; does nothing until then |
 | `html{scrollbar-gutter:stable}` | main.js stops Locomotive while the menu is open, which hides the scrollbar; this stops the page shifting sideways on Windows |
+| `:root{--ad-faq-buttons:1}` | Tells main.js this CSS is there. Without it main.js leaves the FAQ questions as they were, instead of showing grey browser buttons |
 | `.accordion-css__btn` | FAQ questions are buttons now; this makes them look exactly like the old heading text, with the site's focus ring |
+| `.accordion-css__item-bottom>*` | A closed FAQ answer is hidden from screen readers and Tab too (it was only squeezed to 0 px, so VoiceOver read every closed answer); it disappears after the 0.6 s close animation |
 
-Later renames (package P6): if `.option_block`, `.tag.dark` or the `Turquase` variables are renamed, update this embed and `css/global.css`. main.js no longer uses those class names. It does read `--aqua-deuss-bleu--dark-bleu` and `--background-colors--dim_turqyase` for the MENU colours, with the old hex as fallback, so a rename there only needs the two names in `initSideNavigationWipeEffect` updated.
+Later renames and clean-up (package P6): keep this embed (see the top of this file). If `.option_block`, `.tag.dark` or the `Turquase` variables are renamed, update this embed and `css/global.css`; main.js no longer uses those names. If `.accordion-css__item-bottom` is renamed, update the embed, `css/global.css` and `initAccordionCSS` in main.js. main.js also reads `--aqua-deuss-bleu--dark-bleu` and `--background-colors--dim_turqyase` for the MENU colours, with the old hex as fallback, so a rename there only needs the two names in `initSideNavigationWipeEffect` updated.
 
 ## 4. Site settings → Custom code → Head
 
@@ -158,32 +174,36 @@ Use a desktop browser at 1280 px or wider, with the console open, plus a phone (
 **Scroll and motion**
 - [ ] Smooth scrolling feels as before; parallax blocks and the footer reveal still move.
 - [ ] Home: the orbit rings spin.
-- [ ] With Reduce motion on (macOS: System Settings → Accessibility → Display → Reduce motion; iPhone: Settings → Accessibility → Motion), reload Home: rings stand still, no parallax, normal (not smooth) scrolling.
+- [ ] With Reduce motion on (macOS: System Settings → Accessibility → Display → Reduce motion; iPhone: Settings → Accessibility → Motion), reload Home: rings stand still, no parallax, normal (not smooth) scrolling, the Technologies slider does not autoplay, and MENU opens and closes at once, without the wipe. Partners (once the logo wall is visible again): the logos stay put.
 - [ ] Logo and MENU turn white exactly where a service options section or the footer passes under them (also after scrolling down fast and back up), and while the menu is open. The footer only reaches the logo when the window is shorter than about 765 px (the footer is 726 px tall); same as v1.2.0.
 
 **Menu**
 - [ ] Mouse: MENU opens and closes as before; the page behind does not scroll while it is open.
 - [ ] Keyboard: Tab to MENU, Enter opens it, focus lands on "Home"; Escape closes it and focus is back on MENU.
-- [ ] VoiceOver (Cmd+F5) on MENU reads "Open menu, collapsed, button", and "Close menu, expanded" when open.
+- [ ] Keyboard, menu open: keep pressing Tab past X/Twitter. Focus goes to the browser's address bar and then back to the logo, MENU and the menu links; it never lands on the page behind the menu, and the page does not scroll. On a phone-width window too.
+- [ ] Safari, mouse: open MENU with a click. No focus ring appears on "Home". Focus does move there on every open, as in a dialog (keyboard and screen reader users need it); Safari should only draw the ring after keyboard use. If a ring shows, tell Claude: a v1.3.1 can move focus only for keyboard opens.
+- [ ] VoiceOver (Cmd+F5) on MENU reads "Open menu, collapsed, button", and "Close menu, expanded" when open. With the menu open, VoiceOver only finds the header and the menu.
 - [ ] Windows (if at hand): opening the menu does not shift the page sideways.
 
 **FAQ (Home, About, Gallery, Partners, Contact, For Architects, Private Clients)**
 - [ ] Looks exactly as before: font, size, colour, spacing.
 - [ ] Click opens a question and closes the open one.
 - [ ] Tab reaches each question (blue focus ring), Enter and Space open and close it.
+- [ ] VoiceOver, reading down the page (Ctrl+Option+Right arrow): closed answers are skipped; an open answer is read after its question.
 
 **Cards and sliders**
 - [ ] Service option cards (Home, About, Gallery, Partners): hover scales up with a turquoise border and tag; moving away returns them to teal. On a phone a tap does not leave a card scaled.
 - [ ] Home hero slider at 1280 px or wider: clicking the slide on the right moves one forward, the one on the left one back (v1.2.0 did nothing on the right and jumped back two on the left). Arrows, drag and the 01/05 counter work.
-- [ ] Technologies slider (Home, For Architects): autoplays when in view, arrows work, drag works.
+- [ ] Technologies slider (Home, For Architects): autoplays when in view, arrows work, drag works. Autoplay pauses while the mouse is over it, and while Tab focus is on one of its arrows; it goes on once focus or mouse leave.
 - [ ] Resize the window narrower and wider: the active slide stays centred. On a phone, scrolling (address bar sliding) does not make sliders jump.
 
 **Gallery**
 - [ ] All 15 tiles in columns (4 desktop, 3 tablet, 2 phone), no overlaps, nothing jumps around once the photos are in.
 
 **Newsletter (footer)**
-- [ ] Subscribe with empty fields: both fields turn red, the first one gets focus, no popup.
-- [ ] Reload, fill both fields, press Subscribe within 5 s: a red message under the button says "Form submitted too quickly. Please wait a few seconds and try again." (no browser popup). Only submit for real with an address you own.
+- [ ] Subscribe with empty fields: both fields turn red, the first one gets focus, no popup. VoiceOver reads the Name field with "Please fill in this field".
+- [ ] Keyboard: Tab to Subscribe (VoiceOver: "Subscribe, button"); Space and Enter both press it.
+- [ ] Reload, fill both fields, press Subscribe within 5 s: a red message under the button says "Form submitted too quickly. Please wait a few seconds and try again." (no browser popup). VoiceOver reads that message (not "Newsletter failure"), and again on a second quick press. Only submit for real with an address you own.
 
 **Partners**
 - [ ] When the logo wall is visible again: logos swap only while the wall is on screen.
@@ -201,4 +221,4 @@ Use a desktop browser at 1280 px or wider, with the console open, plus a phone (
 
 ## Rollback
 
-Footer tag back to `@v1.2.0`, delete the new Global Styles embed, publish. If step 5 is done, put Cal.com's original inline snippet back into both embeds first: v1.2.0 does not load the lazy calendar.
+Footer tag back to `@v1.2.0`, delete the new Global Styles embed, publish (both in the same publish: v1.3.0 without the embed has still rings, no card hover and a mouse-only FAQ). If step 5 is done, put Cal.com's original inline snippet back into both embeds first: v1.2.0 does not load the lazy calendar.

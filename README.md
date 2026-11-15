@@ -3,7 +3,7 @@
 Site-wide JavaScript for the Aquadeuss website (Webflow, staging: [staging-aquadeuss.webflow.io](https://staging-aquadeuss.webflow.io/)), migrated from Slater (project 17429) on 2026-11-14.
 
 - `main.js`: everything in one file. One section per page or feature (`adGlobal`, `adHome`, `adGallery`); the router at the bottom decides what runs where.
-- `css/global.css`: the CSS main.js relies on since v1.3.0 (orbit spin, service-card hover, white logo/MENU, FAQ buttons, lazy calendar space). It lives in a Code Embed in the Webflow Global Styles component; this file is the commented source.
+- `css/global.css`: the CSS main.js relies on since v1.3.0 (orbit spin, service-card hover, white logo/MENU, FAQ buttons, lazy calendar space). It lives in a Code Embed in the Webflow Global Styles component; this file is the commented source. Paste the compact block from `release-1.3.0.md` into Webflow, not this file. Keep that embed as long as main.js is v1.3.0 or later.
 - `release-1.3.0.md`: what to paste where for the v1.3.0 release, and the test checklist.
 - `slater/`: the original Slater files, as they were on 2026-11-14. Reference only, not loaded on the site.
 
@@ -16,7 +16,7 @@ Site-wide JavaScript for the Aquadeuss website (Webflow, staging: [staging-aquad
 | `initReveal`, `initCalEmbed`, `initScrollRefresh` | every page (inside `adGlobal`) | new in v1.3.0: `[data-reveal]` slide-in replacing the old Webflow interactions; lazy Cal.com for `[data-cal-lazy]` embeds; ScrollTrigger re-measures when late content changes the page height |
 | `adHome` | `/` | 48614 HOME.js: draggable hero slider |
 | `adGallery` | `/gallery` | 52058 GALERY-test.js: masonry grid |
-| `css/global.css` | every page (Global Styles embed) | moved out of main.js in v1.3.0: orbit ring spin (was `rotate360` GSAP tweens), service-card hover (was GSAP), white logo/MENU filter (was a `<style>` tag built by main.js) |
+| `css/global.css` | every page (Global Styles embed) | moved out of main.js in v1.3.0: orbit ring spin (was `rotate360` GSAP tweens; a number on the attribute still sets the seconds per turn, through `--spin-duration`), service-card hover (was GSAP), white logo/MENU filter (was a `<style>` tag built by main.js); plus the FAQ button reset and hiding closed FAQ answers from screen readers |
 
 Tested on 2026-11-14 against the original Slater setup (staging pages served locally with the Slater tags swapped for `main.js`): same ScrollTriggers, slider state, FAQ and masonry layout on `/`, `/gallery` and `/contact`, no errors from `main.js`.
 
@@ -29,14 +29,16 @@ Tested on 2026-11-14 against the original Slater setup (staging pages served loc
   - Gallery: heights are read in one go before tiles are placed; tiles without a shape class hold a 3:2 space until their photo loads.
   - Home orbit spin, service-card hover and the white logo/MENU filter are CSS now (`css/global.css`).
   - Partners logo wall only animates while on screen.
-  - Newsletter: live checks are added once; "submitted too quickly" shows inline instead of `alert()`; fields get `aria-invalid`; `minlength` is honoured.
-  - FAQ questions are real buttons (Tab, Enter, Space, `aria-expanded`, `aria-controls`).
-  - Menu button: `aria-label` Open/Close menu, `aria-expanded`, `aria-controls`; focus moves into the menu and back; the page stops scrolling behind the open menu.
+  - More reduced-motion coverage: no logo wall swaps, no Technologies slider autoplay, and the menu opens and closes without the wipe. The slider's autoplay also pauses while keyboard focus is on its arrows.
+  - Newsletter: live checks are added once; "submitted too quickly" shows inline instead of `alert()` and is read out as that message (also on a repeat); fields get `aria-invalid` and a screen-reader error text; Subscribe is announced as a button and Space presses it; `minlength` is honoured.
+  - FAQ questions are real buttons (Tab, Enter, Space, `aria-expanded`, `aria-controls`), only when the `css/global.css` embed is there (otherwise they stay as they were and the console says so). Closed answers are hidden from screen readers.
+  - Menu button: `aria-label` Open/Close menu, `aria-expanded`, `aria-controls`; focus moves into the menu and back; the page stops scrolling behind the open menu and is inert while it is open, so Tab stays in the header and menu.
   - Home hero slider: clicking a slide on desktop goes to that slide (it went to the one before it).
   - MENU colours come from the brand variables (hex as fallback).
   - New, inactive until used in Webflow: `data-reveal` (replaces the slide-in interactions) and the lazy Cal.com loader (`data-cal-lazy`).
   - Removed dead code: the `#LOGO_ICON` timer, the footer dark overlay, the `rotate360_F` variant, commented-out code, `resolveActive()`, a redundant `gsap.context`. `CustomEase` "main" and `gsap.defaults` moved to the top.
   - Tested against v1.2.0 on the same downloaded staging pages (11 pages incl. 404 and password): same ScrollTrigger count on every page, no console errors, same section positions on Home and tile positions on Gallery, FAQ questions the same size.
+  - Review fixes tested on the same kind of harness (6 pages and the 404, 1440 and 375 px): same ScrollTrigger counts, page heights and gallery tile positions as before the fixes; Tab stays in the open menu at 375 and 1024 px; with reduce motion the menu opens at once, the logo wall and the Technologies autoplay stay still; closed FAQ answers are out of the accessibility tree.
 
 - **v1.2.0**: the logo and MENU turn white over sections with the attribute `data-nav-theme="dark"` (Service options component, the Home and Contact copies of it, Footer) and while the menu is open. Add the attribute to any new dark section in Webflow and it just works.
 - **v1.1.0**: visitors with *reduce motion* on get no endless spins and no parallax (the footer code also skips smooth scroll for them); the logo timer only runs when `#LOGO_ICON` exists and pauses in background tabs; the service-card hover works on every page with the cards, on devices with a real hover; invalid ease `"ease"` written as the `power1.out` GSAP was already using.
